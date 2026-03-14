@@ -1,1 +1,1 @@
-# chocolatetasting.github.io
+# chocolate-studio.github.io
