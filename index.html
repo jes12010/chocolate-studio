@@ -209,311 +209,359 @@
     <div id="aroma-sliders"></div>
   </div>
 
-  <script>
-    /***********************
-     * CONFIG / CONSTANTS  *
-     ***********************/
-    const firebaseConfig = {
-      apiKey: "AIzaSyAt_ZOV74tm7NqcorhvsrM4pmBus0siirA",
-      authDomain: "chocolate-studio-83bd2.firebaseapp.com",
-      databaseURL: "https://chocolate-studio-83bd2-default-rtdb.firebaseio.com",
-      projectId: "chocolate-studio-83bd2",
-      storageBucket: "chocolate-studio-83bd2.firebasestorage.app",
-      messagingSenderId: "1038955602034",
-      appId: "1:1038955602034:web:bdba0c0a9be2eb"
-    };
+<script>
+/***********************
+ * CONFIG / CONSTANTS
+ ***********************/
+const firebaseConfig = {
+  apiKey: "AIzaSyAt_ZOV74tm7NqcorhvsrM4pmBus0siirA",
+  authDomain: "chocolate-studio-83bd2.firebaseapp.com",
+  databaseURL: "https://chocolate-studio-83bd2-default-rtdb.firebaseio.com",
+  projectId: "chocolate-studio-83bd2",
+  storageBucket: "chocolate-studio-83bd2.firebasestorage.app",
+  messagingSenderId: "1038955602034",
+  appId: "1:1038955602034:web:bdba0c0a9be2eb"
+};
 
-    let firebaseEnabled = false;
-    let db = null;
+let firebaseEnabled = false;
+let db = null;
 
-    try {
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.database();
-      firebaseEnabled = true;
-    } catch (e) {
-      console.warn("Firebase not configured or failed to init.", e);
-    }
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  firebaseEnabled = true;
+} catch (e) {
+  console.warn("Firebase not configured or failed to init.", e);
+}
 
-    let sessionID = "";
+let sessionID = "";
 
-    const BASIC_TASTES = ["Sweet", "Sour", "Bitter", "Salty", "Umami"];
+const BASIC_TASTES = ["Sweet", "Sour", "Bitter", "Salty", "Umami"];
 
-    const AROMA_AXES = [
-      "Fruity",
-      "Vegetal",
-      "Floral/Spices",
-      "Sweet/Grainy/Dairy",
-      "Nutty/Roasted",
-      "Cocoa"
-    ];
+const AROMA_AXES = [
+  "Fruity",
+  "Vegetal",
+  "Floral/Spices",
+  "Sweet/Dairy",
+  "Nutty/Toasted/Roasted",
+  "Cocoa"
+];
 
-    const AROMA_COLORS = {
-      "Fruity": "#d95f02",
-      "Vegetal": "#1b9e77",
-      "Floral/Spices": "#7570b3",
-      "Sweet/Grainy/Dairy": "#e6ab02",
-      "Nutty/Roasted": "#a6761d",
-      "Cocoa": "#6a3d9a"
-    };
+const AROMA_COLORS = {
+  "Fruity": "#d95f02",
+  "Vegetal": "#1b9e77",
+  "Floral/Spices": "#7570b3",
+  "Sweet/Dairy": "#e6ab02",
+  "Nutty/Toasted/Roasted": "#a6761d",
+  "Cocoa": "#6a3d9a"
+};
 
-    const MOUTHFEEL_DESCRIPTORS = [
-      "Creamy", "Coarse", "Soft", "Melting", "Sticky", "Oily", "Grainy",
-      "Pungent", "Astringent", "Warm", "Cool"
-    ];
+const MOUTHFEEL_DESCRIPTORS = [
+  "Creamy", "Coarse", "Soft", "Melting", "Sticky", "Oily", "Grainy",
+  "Pungent", "Astringent", "Warm", "Cool"
+];
 
-    const AROMA_DESCRIPTORS_BY_AXIS = {
-      "Fruity": ["Berry", "Citrus", "Dried Fruit", "Tropical Fruit"],
-      "Vegetal": ["Earthy", "Herb-like", "Green", "Hay-like"],
-      "Floral/Spices": [
-        "Rose", "Jasmine", "Lavender", "Chamomile",
-        "Cinnamon", "Nutmeg", "Clove", "Pepper", "Anise"
-      ],
-      "Sweet/Grainy/Dairy": [
-        "Vanilla", "Tonka Bean",
-        "Milk", "Cream", "Butter", "Yogurt",
-        "Malt", "Toast", "Sweet Popcorn", "Bran",
-        "Maple Syrup", "Molasses", "Honey",
-        "Caramel", "Toffee", "Burnt Sugar"
-      ],
-      "Nutty/Roasted": [
-        "Hazelnut", "Almond", "Peanut", "Walnut",
-        "Coffee", "Toasted", "Smoky"
-      ],
-      "Cocoa": ["Cocoa", "Dark Chocolate", "Cocoa Powder"]
-    };
+const AROMA_DESCRIPTORS_BY_AXIS = {
+  "Fruity": ["Berry", "Strawberry","Raspberry","Cherry","Blueberry","Blackberry","Cranberry",
+"Citrus","Orange","Lemon","Lime", "Stone Fruit","Peach","Plum","Apricot","Apple","Fig","Dried Fruit","Date","Raisin","Prune", "Tropical Fruit","Mango","Banana","Passionfruit",],
+  "Vegetal": ["Earthy", "Herb-like", "Green", "Hay-like","Olive","Mushroom","Tobacco","Smoked Wood"],
+  "Floral/Spices": [
+    "Rose", "Jasmine", "Lavender", "Chamomile",
+    "Cinnamon", "Nutmeg", "Clove", "Pepper", "Anise","Bergamot","Licorice"
+  ],
+  "Sweet/Dairy": [
+    "Vanilla", "Coconut",
+"Maple Syrup", "Molasses", "Honey",
+    "Caramel", "Toffee", "Burnt Sugar",
+    "Milk", "Cream", "Butter", "Yogurt"
+  ],
+  "Nutty/Toasted/Roasted": [
+    "Hazelnut", "Almond", "Peanut", "Walnut","Macadamia","Pecan",
+"Malt", "Toast", "Sweet Popcorn", "Bran","Tortilla","Cereal/Grain",
+    "Coffee", "Smoky","Burnt"
+  ],
+  "Cocoa": ["Cocoa", "Dark Chocolate", "Cocoa Powder","Fermented"]
+};
 
-    /***********************
-     * STATE               *
-     ***********************/
-    let currentChocolateId = null;
-    let currentTab = "my";
+/***********************
+ * STATE
+ ***********************/
+let currentChocolateId = null;
+let currentTab = "my";
 
-    let myRatings = {
-      basic: {},
-      mouthfeel: new Set(),
-      aromaValues: {},
-      aromaWords: new Set()
-    };
+let myRatings = {
+  basic: {},
+  mouthfeel: new Set(),
+  aromaValues: {},
+  aromaWords: new Set()
+};
 
-    /***********************
-     * DOM ELEMENTS        *
-     ***********************/
-    const sessionModal = document.getElementById("sessionModal");
-    const sessionInput = document.getElementById("sessionInput");
-    const startSessionBtn = document.getElementById("startSessionBtn");
+/***********************
+ * DOM ELEMENTS
+ ***********************/
+const sessionModal = document.getElementById("sessionModal");
+const sessionInput = document.getElementById("sessionInput");
+const startSessionBtn = document.getElementById("startSessionBtn");
 
-    const pageSelect = document.getElementById("page-select");
-    const pageRatings = document.getElementById("page-ratings");
-    const chocTitle = document.getElementById("choc-title");
+const pageSelect = document.getElementById("page-select");
+const pageRatings = document.getElementById("page-ratings");
+const chocTitle = document.getElementById("choc-title");
 
-    const tabMy = document.getElementById("tab-my");
-    const tabAll = document.getElementById("tab-all");
+const tabMy = document.getElementById("tab-my");
+const tabAll = document.getElementById("tab-all");
 
-    const basicSlidersContainer = document.getElementById("basic-sliders");
-    const mouthfeelButtonsContainer = document.getElementById("mouthfeel-buttons");
-    const aromaSlidersContainer = document.getElementById("aroma-sliders");
+const basicSlidersContainer = document.getElementById("basic-sliders");
+const mouthfeelButtonsContainer = document.getElementById("mouthfeel-buttons");
+const aromaSlidersContainer = document.getElementById("aroma-sliders");
 
-    const mouthfeelCloud = document.getElementById("mouthfeelCloud");
-    const aromaCloud = document.getElementById("aromaCloud");
+const mouthfeelCloud = document.getElementById("mouthfeelCloud");
+const aromaCloud = document.getElementById("aromaCloud");
 
-    /***********************
-     * SESSION MODAL FIX   *
-     ***********************/
-    startSessionBtn.addEventListener("click", () => {
-      const val = sessionInput.value.trim();
-      if (!val) return;
+/***********************
+ * SESSION MODAL FIX
+ ***********************/
+startSessionBtn.addEventListener("click", () => {
+  const val = sessionInput.value.trim();
+  if (!val) return;
 
-      sessionID = val;
+  sessionID = val;
 
-      // FIX: Hide modal so landing page becomes interactive
-      sessionModal.style.display = "none";
-    });
+  // Hide modal so landing page becomes interactive
+  sessionModal.style.display = "none";
+});
 
-    /***********************
-     * CHARTS              *
-     ***********************/
-    let basicRadarChart = null;
-    let aromaRadarChart = null;
+/***********************
+ * CHARTS
+ ***********************/
+let basicRadarChart = null;
+let aromaRadarChart = null;
 
-    function initCharts() {
-      const basicCtx = document.getElementById("basicRadar").getContext("2d");
-      const aromaCtx = document.getElementById("aromaRadar").getContext("2d");
+function initCharts() {
+  const basicCtx = document.getElementById("basicRadar").getContext("2d");
+  const aromaCtx = document.getElementById("aromaRadar").getContext("2d");
 
-      basicRadarChart = new Chart(basicCtx, {
-        type: "radar",
-        data: {
-          labels: BASIC_TASTES,
-          datasets: [{
-            label: "My ratings",
-            data: BASIC_TASTES.map(() => 0),
-            backgroundColor: "rgba(255, 215, 128, 0.2)",
-            borderColor: "#ffd780",
-            borderWidth: 2,
-            pointBackgroundColor: "#ffd780"
-          }]
-        },
-        options: {
-          scales: {
-            r: {
-              min: 0,
-              max: 5,
-              ticks: { stepSize: 1, color: "#f7e7d3" },
-              grid: { color: "rgba(247,231,211,0.3)" },
-              angleLines: { color: "rgba(247,231,211,0.3)" },
-              pointLabels: { color: "#f7e7d3" }
-            }
-          },
-          plugins: { legend: { display: false } }
+  basicRadarChart = new Chart(basicCtx, {
+    type: "radar",
+    data: {
+      labels: BASIC_TASTES,
+      datasets: [{
+        label: "My ratings",
+        data: BASIC_TASTES.map(() => 0),
+        backgroundColor: "rgba(255, 215, 128, 0.2)",
+        borderColor: "#ffd780",
+        borderWidth: 2,
+        pointBackgroundColor: "#ffd780"
+      }]
+    },
+    options: {
+      scales: {
+        r: {
+          min: 0,
+          max: 5,
+          ticks: { stepSize: 1, color: "#f7e7d3" },
+          grid: { color: "rgba(247,231,211,0.3)" },
+          angleLines: { color: "rgba(247,231,211,0.3)" },
+          pointLabels: { color: "#f7e7d3" }
         }
-      });
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
 
-      aromaRadarChart = new Chart(aromaCtx, {
-        type: "radar",
-        data: {
-          labels: AROMA_AXES,
-          datasets: [{
-            label: "My ratings",
-            data: AROMA_AXES.map(() => 0),
-            backgroundColor: "rgba(255, 215, 128, 0.2)",
-            borderColor: "#ffd780",
-            borderWidth: 2,
-            pointBackgroundColor: "#ffd780"
-          }]
-        },
-        options: {
-          scales: {
-            r: {
-              min: 0,
-              max: 5,
-              ticks: { stepSize: 1, color: "#f7e7d3" },
-              grid: { color: "rgba(247,231,211,0.3)" },
-              angleLines: { color: "rgba(247,231,211,0.3)" },
-              pointLabels: { color: "#f7e7d3" }
-            }
-          },
-          plugins: { legend: { display: false } }
+  aromaRadarChart = new Chart(aromaCtx, {
+    type: "radar",
+    data: {
+      labels: AROMA_AXES,
+      datasets: [{
+        label: "My ratings",
+        data: AROMA_AXES.map(() => 0),
+        backgroundColor: "rgba(255, 215, 128, 0.2)",
+        borderColor: "#ffd780",
+        borderWidth: 2,
+        pointBackgroundColor: "#ffd780"
+      }]
+    },
+    options: {
+      scales: {
+        r: {
+          min: 0,
+          max: 5,
+          ticks: { stepSize: 1, color: "#f7e7d3" },
+          grid: { color: "rgba(247,231,211,0.3)" },
+          angleLines: { color: "rgba(247,231,211,0.3)" },
+          pointLabels: { color: "#f7e7d3" }
         }
-      });
+      },
+      plugins: { legend: { display: false } }
     }
+  });
+}
 
-    /***********************
-     * UI BUILDERS         *
-     ***********************/
-    function buildBasicSliders() {
-      basicSlidersContainer.innerHTML = "";
-      BASIC_TASTES.forEach(taste => {
-        const div = document.createElement("div");
-        div.className = "slider-group";
-        div.innerHTML = `
-          <label>${taste}</label>
-          <input type="range" min="0" max="5" value="0" data-type="basic" data-key="${taste}">
-        `;
-        basicSlidersContainer.appendChild(div);
-      });
-    }
+/***********************
+ * UI BUILDERS
+ ***********************/
+function buildBasicSliders() {
+  basicSlidersContainer.innerHTML = "";
+  BASIC_TASTES.forEach(taste => {
+    const div = document.createElement("div");
+    div.className = "slider-group";
+    div.innerHTML = `
+      <label>${taste}</label>
+      <input type="range" min="0" max="5" value="0" data-type="basic" data-key="${taste}">
+    `;
+    basicSlidersContainer.appendChild(div);
+  });
+}
 
-    function buildAromaDescriptorButtons(axis) {
-      const container = document.createElement("div");
-      container.className = "descriptor-buttons";
+function buildAromaDescriptorButtons(axis) {
+  const container = document.createElement("div");
+  container.className = "descriptor-buttons";
 
-      const color = AROMA_COLORS[axis];
+  const color = AROMA_COLORS[axis];
 
-      AROMA_DESCRIPTORS_BY_AXIS[axis].forEach(word => {
-        const btn = document.createElement("button");
-        btn.textContent = word;
-        btn.dataset.word = word;
-        btn.style.background = color;
+  AROMA_DESCRIPTORS_BY_AXIS[axis].forEach(word => {
+    const btn = document.createElement("button");
+    btn.textContent = word;
+    btn.dataset.word = word;
+    btn.style.background = color;
 
-        btn.addEventListener("click", () => {
-          if (myRatings.aromaWords.has(word)) {
-            myRatings.aromaWords.delete(word);
-            btn.classList.remove("selected");
-          } else {
-            myRatings.aromaWords.add(word);
-            btn.classList.add("selected");
-          }
-          updateFirebase();
-          updateClouds();
-        });
-
-        container.appendChild(btn);
-      });
-
-      aromaSlidersContainer.appendChild(container);
-    }
-
-    function buildAromaSliders() {
-      aromaSlidersContainer.innerHTML = "";
-
-      AROMA_AXES.forEach(axis => {
-        const div = document.createElement("div");
-        div.className = "slider-group";
-        div.innerHTML = `
-          <label>${axis}</label>
-          <input type="range" min="0" max="5" value="0" data-type="aroma" data-key="${axis}">
-        `;
-        aromaSlidersContainer.appendChild(div);
-
-        buildAromaDescriptorButtons(axis);
-      });
-    }
-
-    function buildMouthfeelButtons() {
-      mouthfeelButtonsContainer.innerHTML = "";
-      MOUTHFEEL_DESCRIPTORS.forEach(word => {
-        const btn = document.createElement("button");
-        btn.textContent = word;
-        btn.dataset.word = word;
-        btn.style.background = "#5a3e36";
-
-        btn.addEventListener("click", () => {
-          if (myRatings.mouthfeel.has(word)) {
-            myRatings.mouthfeel.delete(word);
-            btn.classList.remove("selected");
-          } else {
-            myRatings.mouthfeel.add(word);
-            btn.classList.add("selected");
-          }
-          updateFirebase();
-          updateClouds();
-        });
-
-        mouthfeelButtonsContainer.appendChild(btn);
-      });
-    }
-
-    /***********************
-     * EVENT LISTENERS     *
-     ***********************/
-    document.querySelectorAll(".choc-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        currentChocolateId = btn.dataset.chocId;
-        chocTitle.textContent = btn.textContent;
-        pageSelect.classList.add("hidden");
-        pageRatings.classList.remove("hidden");
-        initCharts();
-        buildBasicSliders();
-        buildAromaSliders();
-        buildMouthfeelButtons();
-      });
+    btn.addEventListener("click", () => {
+      if (myRatings.aromaWords.has(word)) {
+        myRatings.aromaWords.delete(word);
+        btn.classList.remove("selected");
+      } else {
+        myRatings.aromaWords.add(word);
+        btn.classList.add("selected");
+      }
+      updateFirebase();
+      updateClouds();
     });
 
-    tabMy.addEventListener("click", () => {
-      currentTab = "my";
-      tabMy.classList.add("active");
-      tabAll.classList.remove("active");
+    container.appendChild(btn);
+  });
+
+  aromaSlidersContainer.appendChild(container);
+}
+
+function buildAromaSliders() {
+  aromaSlidersContainer.innerHTML = "";
+
+  AROMA_AXES.forEach(axis => {
+    const div = document.createElement("div");
+    div.className = "slider-group";
+    div.innerHTML = `
+      <label>${axis}</label>
+      <input type="range" min="0" max="5" value="0" data-type="aroma" data-key="${axis}">
+    `;
+    aromaSlidersContainer.appendChild(div);
+
+    buildAromaDescriptorButtons(axis);
+  });
+}
+
+function buildMouthfeelButtons() {
+  mouthfeelButtonsContainer.innerHTML = "";
+  MOUTHFEEL_DESCRIPTORS.forEach(word => {
+    const btn = document.createElement("button");
+    btn.textContent = word;
+    btn.dataset.word = word;
+    btn.style.background = "#5a3e36";
+
+    btn.addEventListener("click", () => {
+      if (myRatings.mouthfeel.has(word)) {
+        myRatings.mouthfeel.delete(word);
+        btn.classList.remove("selected");
+      } else {
+        myRatings.mouthfeel.add(word);
+        btn.classList.add("selected");
+      }
+      updateFirebase();
+      updateClouds();
     });
 
-    tabAll.addEventListener("click", () => {
-      currentTab = "all";
-      tabAll.classList.add("active");
-      tabMy.classList.remove("active");
-    });
+    mouthfeelButtonsContainer.appendChild(btn);
+  });
+}
 
-    /***********************
-     * FIREBASE SYNC       *
-     ***********************/
-   function updateFirebase() {
+/***********************
+ * SLIDER EVENT HANDLERS
+ ***********************/
+function attachSliderListeners() {
+  // BASIC TASTES
+  document.querySelectorAll('input[data-type="basic"]').forEach(slider => {
+    slider.addEventListener("input", () => {
+      const key = slider.dataset.key;
+      const value = Number(slider.value);
+
+      myRatings.basic[key] = value;
+
+      const index = BASIC_TASTES.indexOf(key);
+      basicRadarChart.data.datasets[0].data[index] = value;
+      basicRadarChart.update();
+
+      updateFirebase();
+    });
+  });
+
+  // AROMA AXES
+  document.querySelectorAll('input[data-type="aroma"]').forEach(slider => {
+    slider.addEventListener("input", () => {
+      const key = slider.dataset.key;
+      const value = Number(slider.value);
+
+      myRatings.aromaValues[key] = value;
+
+      const index = AROMA_AXES.indexOf(key);
+      aromaRadarChart.data.datasets[0].data[index] = value;
+      aromaRadarChart.update();
+
+      updateFirebase();
+    });
+  });
+}
+
+/***********************
+ * EVENT LISTENERS
+ ***********************/
+document.querySelectorAll(".choc-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    currentChocolateId = btn.dataset.chocId;
+    chocTitle.textContent = btn.textContent;
+    pageSelect.classList.add("hidden");
+    pageRatings.classList.remove("hidden");
+
+    initCharts();
+    buildBasicSliders();
+    buildAromaSliders();
+    buildMouthfeelButtons();
+    attachSliderListeners();
+  });
+});
+
+tabMy.addEventListener("click", () => {
+  currentTab = "my";
+  tabMy.classList.add("active");
+  tabAll.classList.remove("active");
+});
+
+tabAll.addEventListener("click", () => {
+  currentTab = "all";
+  tabAll.classList.add("active");
+  tabMy.classList.remove("active");
+});
+
+/***********************
+ * CLOUDS
+ ***********************/
+function updateClouds() {
+  mouthfeelCloud.textContent = Array.from(myRatings.mouthfeel).join(", ");
+  aromaCloud.textContent = Array.from(myRatings.aromaWords).join(", ");
+}
+
+/***********************
+ * FIREBASE SYNC
+ ***********************/
+function updateFirebase() {
   if (!firebaseEnabled || !sessionID || !currentChocolateId) return;
 
   db.ref(`ratings/${sessionID}/${currentChocolateId}`).set({
