@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chocolate Tasting</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase (optional for shared data) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #1b0f0a;
+      color: #f7e7d3;
+    }
+    .app-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    h1, h2, h3 {
+      font-weight: 500;
+      margin: 0 0 12px;
+    }
+    .card {
+      background: #2a1710;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      margin-bottom: 16px;
+    }
+    .chocolate-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .choc-btn {
+      background: #4b2a1a;
+      border: none;
+      color: #f7e7d3;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s, background 0.2s;
+    }
+    .choc-btn:hover {
+      background: #5b3421;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+    .top-panel {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .top-panel-item {
+      background: #3a2115;
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .top-panel-item canvas {
+      max-width: 100%;
+      max-height: 160px;
+    }
+    .word-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 4px;
+      justify-content: center;
+    }
+    .word-cloud span {
+      color: #f7e7d3;
+      font-weight: 500;
+    }
+    .tabs {
+      display: flex;
+      border-radius: 999px;
+      background: #3a2115;
+      padding: 4px;
+      margin-bottom: 12px;
+    }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 0;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .tab.active {
+      background: #f7e7d3;
+      color: #2a1710;
+      font-weight: 600;
+    }
+    .section {
+      margin-top: 12px;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .slider-row label {
+      flex: 0 0 90px;
+      font-size: 14px;
+    }
+    .slider-row input[type="range"] {
+      flex: 1;
+    }
+    .slider-value {
+      width: 32px;
+      text-align: right;
+      font-size: 14px;
+    }
+    .descriptor-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .descriptor-btn {
+      border-radius: 999px;
+      border: 1px solid #f7e7d3;
+      background: transparent;
+      color: #f7e7d3;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .descriptor-btn.selected {
+      background: #f7e7d3;
+      color: #2a1710;
+    }
+    @media (max-width: 768px) {
+      .top-panel {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <!-- PAGE 1: Chocolate selection -->
+  <div id="page-select" class="card">
+    <h1>Which chocolate are you tasting?</h1>
+    <div class="chocolate-options">
+      <!-- You can rename these labels later -->
+      <button class="choc-btn" data-choc-id="choc1">Chocolate 1</button>
+      <button class="choc-btn" data-choc-id="choc2">Chocolate 2</button>
+      <button class="choc-btn" data-choc-id="choc3">Chocolate 3</button>
+      <button class="choc-btn" data-choc-id="choc4">Chocolate 4</button>
+    </div>
+  </div>
+
+  <!-- PAGE 2: Ratings -->
+  <div id="page-ratings" class="card" style="display:none;">
+    <h2 id="choc-title">Chocolate</h2>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" id="tab-my" data-tab="my">My ratings</div>
+      <div class="tab" id="tab-all" data-tab="all">Everyone’s ratings</div>
+    </div>
+
+    <!-- Top panel: 4 figures -->
+    <div class="top-panel">
+      <div class="top-panel-item">
+        <h3 style="font-size:12px; margin-bottom:4px;">Basic Tastes</h3>
+        <canvas id="basicRadar"></canvas>
+      </div>
+      <div class="top-panel-item">
+        <h3 style="font-size:12px; margin-bottom:4px;">Mouthfeel</h3>
+        <div id="mouthfeelCloud" class="word-cloud"></div>
+      </div>
+      <div class="top-panel-item">
+        <h3 style="font-size:12px; margin-bottom:4px;">Aromas</h3>
+        <canvas id="aromaRadar"></canvas>
+      </div>
+      <div class="top-panel-item">
+        <h3 style="font-size:12px; margin-bottom:4px;">Aroma Words</h3>
+        <div id="aromaCloud" class="word-cloud"></div>
+      </div>
+    </div>
+
+    <!-- Sections -->
+    <div class="section">
+      <h3>Basic Tastes</h3>
+      <div id="basic-sliders"></div>
+    </div>
+
+    <div class="section">
+      <h3>Mouthfeel</h3>
+      <div id="mouthfeel-buttons" class="descriptor-buttons"></div>
+    </div>
+
+    <div class="section">
+      <h3>Aromas</h3>
+      <div id="aroma-sliders"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /***********************
+   * CONFIG / CONSTANTS  *
+   ***********************/
+  // TODO: Replace with your Firebase config if you want real-time shared data.
+  // If you don’t want Firebase, we can switch to localStorage-only.
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "SENDER_ID",
+    appId: "APP_ID"
+  };
+
+  let firebaseEnabled = false;
+  let db = null;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    firebaseEnabled = true;
+  } catch (e) {
+    console.warn("Firebase not configured or failed to init. Running local-only.", e);
+  }
+
+  // Basic tastes sliders
+  const BASIC_TASTES = ["Sweet", "Sour", "Bitter", "Salty", "Umami"];
+
+  // Aroma sliders (5 axes)
+  const AROMA_AXES = ["Roasted", "Fruity", "Nutty", "Sweet Aromas", "Earthy/Vegetal"];
+
+  // TODO: Fill these from your chocolate flavor wheel image.
+  const MOUTHFEEL_DESCRIPTORS = [
+    "Creamy", "Grainy", "Velvety", "Drying", "Oily", "Sticky"
+  ];
+
+  const AROMA_DESCRIPTORS_BY_AXIS = {
+    "Roasted": ["Cocoa", "Coffee", "Toasted", "Smoky"],
+    "Fruity": ["Red fruit", "Citrus", "Dried fruit", "Tropical"],
+    "Nutty": ["Hazelnut", "Almond", "Peanut", "Walnut"],
+    "Sweet Aromas": ["Caramel", "Honey", "Vanilla", "Butterscotch"],
+    "Earthy/Vegetal": ["Woody", "Herbal", "Earthy", "Green"]
+  };
+
+  /***********************
+   * STATE               *
+   ***********************/
+  let currentChocolateId = null;
+  let currentTab = "my"; // "my" or "all"
+
+  // Per-user (local) state
+  let myRatings = {
+    basic: {},        // { Sweet: 0-5, ... }
+    mouthfeel: new Set(), // selected words
+    aromaValues: {},  // { Roasted: 0-5, ... }
+    aromaWords: new Set()
+  };
+
+  // Aggregated state (from Firebase or local)
+  let allRatings = {
+    basic: {},        // { Sweet: avg, ... }
+    mouthfeel: {},    // { word: count }
+    aromaValues: {},  // { axis: avg }
+    aromaWords: {}    // { word: count }
+  };
+
+  /***********************
+   * DOM ELEMENTS        *
+   ***********************/
+  const pageSelect = document.getElementById("page-select");
+  const pageRatings = document.getElementById("page-ratings");
+  const chocTitle = document.getElementById("choc-title");
+
+  const tabMy = document.getElementById("tab-my");
+  const tabAll = document.getElementById("tab-all");
+
+  const basicSlidersContainer = document.getElementById("basic-sliders");
+  const mouthfeelButtonsContainer = document.getElementById("mouthfeel-buttons");
+  const aromaSlidersContainer = document.getElementById("aroma-sliders");
+
+  const mouthfeelCloud = document.getElementById("mouthfeelCloud");
+  const aromaCloud = document.getElementById("aromaCloud");
+
+  /***********************
+   * CHARTS              *
+   ***********************/
+  let basicRadarChart = null;
+  let aromaRadarChart = null;
+
+  function initCharts() {
+    const basicCtx = document.getElementById("basicRadar").getContext("2d");
+    const aromaCtx = document.getElementById("aromaRadar").getContext("2d");
+
+    basicRadarChart = new Chart(basicCtx, {
+      type: "radar",
+      data: {
+        labels: BASIC_TASTES,
+        datasets: [{
+          label: "My ratings",
+          data: BASIC_TASTES.map(() => 0),
+          backgroundColor: "rgba(255, 215, 128, 0.2)",
+          borderColor: "#ffd780",
+          borderWidth: 2,
+          pointBackgroundColor: "#ffd780"
+        }]
+      },
+      options: {
+        scales: {
+          r: {
+            min: 0,
+            max: 5,
+            ticks: { stepSize: 1, color: "#f7e7d3" },
+            grid: { color: "rgba(247,231,211,0.3)" },
+            angleLines: { color: "rgba(247,231,211,0.3)" },
+            pointLabels: { color: "#f7e7d3" }
+          }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+
+    aromaRadarChart = new Chart(aromaCtx, {
+      type: "radar",
+      data: {
+        labels: AROMA_AXES,
+        datasets: [{
+          label: "My ratings",
+          data: AROMA_AXES.map(() => 0),
+          backgroundColor: "rgba(180, 140, 255, 0.2)",
+          borderColor: "#b48cff",
+          borderWidth: 2,
+          pointBackgroundColor: "#b48cff"
+        }]
+      },
+      options: {
+        scales: {
+          r: {
+            min: 0,
+            max: 5,
+            ticks: { stepSize: 1, color: "#f7e7d3" },
+            grid: { color: "rgba(247,231,211,0.3)" },
+            angleLines: { color: "rgba(247,231,211,0.3)" },
+            pointLabels: { color: "#f7e7d3" }
+          }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+
+  function updateRadarCharts() {
+    const isMy = currentTab === "my";
+
+    // Basic tastes
+    const basicSource = isMy ? myRatings.basic : allRatings.basic;
+    basicRadarChart.data.datasets[0].data = BASIC_TASTES.map(
+      t => basicSource[t] ?? 0
+    );
+    basicRadarChart.update();
+
+    // Aromas
+    const aromaSource = isMy ? myRatings.aromaValues : allRatings.aromaValues;
+    aromaRadarChart.data.datasets[0].data = AROMA_AXES.map(
+      a => aromaSource[a] ?? 0
+    );
+    aromaRadarChart.update();
+  }
+
+  function updateWordClouds() {
+    const isMy = currentTab === "my";
+
+    // Mouthfeel
+    mouthfeelCloud.innerHTML = "";
+    if (isMy) {
+      myRatings.mouthfeel.forEach(word => {
+        const span = document.createElement("span");
+        span.textContent = word;
+        span.style.fontSize = "16px";
+        mouthfeelCloud.appendChild(span);
+      });
+    } else {
+      const entries = Object.entries(allRatings.mouthfeel);
+      if (entries.length === 0) return;
+      const maxCount = Math.max(...entries.map(([_, c]) => c));
+      entries.forEach(([word, count]) => {
+        const span = document.createElement("span");
+        span.textContent = word;
+        const size = 12 + (count / maxCount) * 12;
+        span.style.fontSize = size + "px";
+        mouthfeelCloud.appendChild(span);
+      });
+    }
+
+    // Aroma words
+    aromaCloud.innerHTML = "";
+    if (isMy) {
+      myRatings.aromaWords.forEach(word => {
+        const span = document.createElement("span");
+        span.textContent = word;
+        span.style.fontSize = "16px";
+        aromaCloud.appendChild(span);
+      });
+    } else {
+      const entries = Object.entries(allRatings.aromaWords);
+      if (entries.length === 0) return;
+      const maxCount = Math.max(...entries.map(([_, c]) => c));
+      entries.forEach(([word, count]) => {
+        const span = document.createElement("span");
+        span.textContent = word;
+        const size = 12 + (count / maxCount) * 12;
+        span.style.fontSize = size + "px";
+        aromaCloud.appendChild(span);
+      });
+    }
+  }
+
+  /***********************
+   * UI BUILDERS         *
+   ***********************/
+  function buildBasicSliders() {
+    basicSlidersContainer.innerHTML = "";
+    BASIC_TASTES.forEach(taste => {
+      const row = document.createElement("div");
+      row.className = "slider-row";
+
+      const label = document.createElement("label");
+      label.textContent = taste;
+
+      const input = document.createElement("input");
+      input.type = "range";
+      input.min = "0";
+      input.max = "5";
+      input.step = "1";
+      input.value = myRatings.basic[taste] ?? 0;
+      input.dataset.taste = taste;
+
+      const valueSpan = document.createElement("span");
+      valueSpan.className = "slider-value";
+      valueSpan.textContent = input.value;
+
+      input.addEventListener("input", () => {
+        myRatings.basic[taste] = Number(input.value);
+        valueSpan.textContent = input.value;
+        pushMyRatings();
+        updateRadarCharts();
+      });
+
+      row.appendChild(label);
+      row.appendChild(input);
+      row.appendChild(valueSpan);
+      basicSlidersContainer.appendChild(row);
+    });
+  }
+
+  function buildMouthfeelButtons() {
+    mouthfeelButtonsContainer.innerHTML = "";
+    MOUTHFEEL_DESCRIPTORS.forEach(word => {
+      const btn = document.createElement("button");
+      btn.className = "descriptor-btn";
+      btn.textContent = word;
+      btn.dataset.word = word;
+
+      btn.addEventListener("click", () => {
+        if (myRatings.mouthfeel.has(word)) {
+          myRatings.mouthfeel.delete(word);
+          btn.classList.remove("selected");
+        } else {
+          myRatings.mouthfeel.add(word);
+          btn.classList.add("selected");
+        }
+        pushMyRatings();
+        updateWordClouds();
+      });
+
+      mouthfeelButtonsContainer.appendChild(btn);
+    });
+  }
+
+  function buildAromaSliders() {
+    aromaSlidersContainer.innerHTML = "";
+    AROMA_AXES.forEach(axis => {
+      const wrapper = document.createElement("div");
+      wrapper.style.marginBottom = "10px";
+
+      const row = document.createElement("div");
+      row.className = "slider-row";
+
+      const label = document.createElement("label");
+      label.textContent = axis;
+
+      const input = document.createElement("input");
+      input.type = "range";
+      input.min = "0";
+      input.max = "5";
+      input.step = "1";
+      input.value = myRatings.aromaValues[axis] ?? 0;
+      input.dataset.axis = axis;
+
+      const valueSpan = document.createElement("span");
+      valueSpan.className = "slider-value";
+      valueSpan.textContent = input.value;
+
+      input.addEventListener("input", () => {
+        myRatings.aromaValues[axis] = Number(input.value);
+        valueSpan.textContent = input.value;
+        pushMyRatings();
+        updateRadarCharts();
+      });
+
+      row.appendChild(label);
+      row.appendChild(input);
+      row.appendChild(valueSpan);
+      wrapper.appendChild(row);
+
+      // Descriptor buttons under each slider
+      const descContainer = document.createElement("div");
+      descContainer.className = "descriptor-buttons";
+      const words = AROMA_DESCRIPTORS_BY_AXIS[axis] || [];
+      words.forEach(word => {
+        const btn = document.createElement("button");
+        btn.className = "descriptor-btn";
+        btn.textContent = word;
+        btn.dataset.word = word;
+
+        btn.addEventListener("click", () => {
+          if (myRatings.aromaWords.has(word)) {
+            myRatings.aromaWords.delete(word);
+            btn.classList.remove("selected");
+          } else {
+            myRatings.aromaWords.add(word);
+            btn.classList.add("selected");
+          }
+          pushMyRatings();
+          updateWordClouds();
+        });
+
+        descContainer.appendChild(btn);
+      });
+
+      wrapper.appendChild(descContainer);
+      aromaSlidersContainer.appendChild(wrapper);
+    });
+  }
+
+  /***********************
+   * DATA SYNC           *
+   ***********************/
+  function getSessionId() {
+    // Simple anonymous session ID per browser tab
+    if (!sessionStorage.getItem("chocSessionId")) {
+      sessionStorage.setItem("chocSessionId", "sess_" + Math.random().toString(36).slice(2));
+    }
+    return sessionStorage.getItem("chocSessionId");
+  }
+
+  function pushMyRatings() {
+    if (!firebaseEnabled || !currentChocolateId) return;
+    const sessionId = getSessionId();
+    const ref = db.ref("chocolates/" + currentChocolateId + "/ratings/" + sessionId);
+    const payload = {
+      basic: Object.fromEntries(Object.entries(myRatings.basic)),
+      mouthfeel: Array.from(myRatings.mouthfeel),
+      aromaValues: Object.fromEntries(Object.entries(myRatings.aromaValues)),
+      aromaWords: Array.from(myRatings.aromaWords)
+    };
+    ref.set(payload);
+  }
+
+  function listenForAllRatings() {
+    if (!firebaseEnabled || !currentChocolateId) return;
+    const ref = db.ref("chocolates/" + currentChocolateId + "/ratings");
+    ref.on("value", snapshot => {
+      const data = snapshot.val() || {};
+      aggregateRatings(data);
+      if (currentTab === "all") {
+        updateRadarCharts();
+        updateWordClouds();
+      }
+    });
+  }
+
+  function aggregateRatings(allUsers) {
+    const basicSums = {};
+    const basicCounts = {};
+    const aromaSums = {};
+    const aromaCounts = {};
+    const mouthfeelCounts = {};
+    const aromaWordCounts = {};
+
+    Object.values(allUsers).forEach(user => {
+      // Basic
+      if (user.basic) {
+        Object.entries(user.basic).forEach(([k, v]) => {
+          basicSums[k] = (basicSums[k] || 0) + v;
+          basicCounts[k] = (basicCounts[k] || 0) + 1;
+        });
+      }
+      // Mouthfeel
+      if (Array.isArray(user.mouthfeel)) {
+        user.mouthfeel.forEach(word => {
+          mouthfeelCounts[word] = (mouthfeelCounts[word] || 0) + 1;
+        });
+      }
+      // Aroma values
+      if (user.aromaValues) {
+        Object.entries(user.aromaValues).forEach(([k, v]) => {
+          aromaSums[k] = (aromaSums[k] || 0) + v;
+          aromaCounts[k] = (aromaCounts[k] || 0) + 1;
+        });
+      }
+      // Aroma words
+      if (Array.isArray(user.aromaWords)) {
+        user.aromaWords.forEach(word => {
+          aromaWordCounts[word] = (aromaWordCounts[word] || 0) + 1;
+        });
+      }
+    });
+
+    allRatings.basic = {};
+    Object.entries(basicSums).forEach(([k, sum]) => {
+      allRatings.basic[k] = sum / basicCounts[k];
+    });
+
+    allRatings.mouthfeel = mouthfeelCounts;
+
+    allRatings.aromaValues = {};
+    Object.entries(aromaSums).forEach(([k, sum]) => {
+      allRatings.aromaValues[k] = sum / aromaCounts[k];
+    });
+
+    allRatings.aromaWords = aromaWordCounts;
+  }
+
+  /***********************
+   * NAV / EVENTS        *
+   ***********************/
+  document.querySelectorAll(".choc-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentChocolateId = btn.dataset.chocId;
+      chocTitle.textContent = btn.textContent;
+
+      pageSelect.style.display = "none";
+      pageRatings.style.display = "block";
+
+      // Reset local ratings for new chocolate
+      myRatings = {
+        basic: {},
+        mouthfeel: new Set(),
+        aromaValues: {},
+        aromaWords: new Set()
+      };
+
+      buildBasicSliders();
+      buildMouthfeelButtons();
+      buildAromaSliders();
+      updateRadarCharts();
+      updateWordClouds();
+      listenForAllRatings();
+    });
+  });
+
+  tabMy.addEventListener("click", () => {
+    currentTab = "my";
+    tabMy.classList.add("active");
+    tabAll.classList.remove("active");
+    updateRadarCharts();
+    updateWordClouds();
+  });
+
+  tabAll.addEventListener("click", () => {
+    currentTab = "all";
+    tabAll.classList.add("active");
+    tabMy.classList.remove("active");
+    updateRadarCharts();
+    updateWordClouds();
+  });
+
+  // Init
+  initCharts();
+</script>
+</body>
+</html>
