@@ -181,7 +181,7 @@
   </div>
 
   <!-- BASIC TASTES -->
-  <h3>Basic Taste Sliders</h3>
+  <h3>Basic Tastes</h3>
   <div id="basic-sliders"></div>
 
   <div id="basic-plot-section" class="visual-box">
@@ -215,6 +215,7 @@
   </div>
 </div>
 
+<script>
 <script>
 /***********************
  * CONFIG / CONSTANTS
@@ -423,6 +424,40 @@ function initCharts() {
 }
 
 /***********************
+ * RESET UI TO BLANK
+ ***********************/
+function resetLocalRatings() {
+  myRatings = {
+    basic: {},
+    mouthfeel: new Set(),
+    aromaValues: {},
+    aromaWords: new Set()
+  };
+
+  // Reset sliders
+  document.querySelectorAll('input[data-type="basic"]').forEach(s => s.value = 0);
+  document.querySelectorAll('input[data-type="aroma"]').forEach(s => s.value = 0);
+
+  // Reset buttons
+  document.querySelectorAll('#mouthfeel-buttons button').forEach(btn => btn.classList.remove("selected"));
+  document.querySelectorAll('#aroma-sliders button').forEach(btn => btn.classList.remove("selected"));
+
+  // Reset clouds
+  mouthfeelCloud.innerHTML = "";
+  aromaCloud.innerHTML = "";
+
+  // Reset charts
+  if (basicRadarChart) {
+    basicRadarChart.data.datasets[0].data = BASIC_TASTES.map(() => 0);
+    basicRadarChart.update();
+  }
+  if (aromaRadarChart) {
+    aromaRadarChart.data.datasets[0].data = AROMA_AXES.map(() => 0);
+    aromaRadarChart.update();
+  }
+}
+
+/***********************
  * UI BUILDERS
  ***********************/
 function buildBasicSliders() {
@@ -568,41 +603,6 @@ function loadMySavedRatings() {
 }
 
 /***********************
- * SLIDER EVENT HANDLERS
- ***********************/
-function attachSliderListeners() {
-  document.querySelectorAll('input[data-type="basic"]').forEach(slider => {
-    slider.addEventListener("input", () => {
-      const key = slider.dataset.key;
-      const value = Number(slider.value);
-
-      myRatings.basic[key] = value;
-
-      const index = BASIC_TASTES.indexOf(key);
-      basicRadarChart.data.datasets[0].data[index] = value;
-      basicRadarChart.update();
-
-      updateFirebase();
-    });
-  });
-
-  document.querySelectorAll('input[data-type="aroma"]').forEach(slider => {
-    slider.addEventListener("input", () => {
-      const key = slider.dataset.key;
-      const value = Number(slider.value);
-
-      myRatings.aromaValues[key] = value;
-
-      const index = AROMA_AXES.indexOf(key);
-      aromaRadarChart.data.datasets[0].data[index] = value;
-      aromaRadarChart.update();
-
-      updateFirebase();
-    });
-  });
-}
-
-/***********************
  * LOAD CHOCOLATE
  ***********************/
 function loadChocolate(chocId) {
@@ -620,7 +620,13 @@ function loadChocolate(chocId) {
   buildMouthfeelButtons();
   attachSliderListeners();
 
+  // Reset UI to blank first
+  resetLocalRatings();
+
+  // Then restore saved ratings (if any)
   loadMySavedRatings();
+
+  // Load group averages
   loadGroupRatings();
 }
 
@@ -725,7 +731,7 @@ function loadGroupRatings() {
       })
       .join("");
 
-        aromaCloud.innerHTML = Object.entries(aromaFreq)
+    aromaCloud.innerHTML = Object.entries(aromaFreq)
       .map(([word, count]) => {
         const size = 14 + (count / maxA) * 26; // 14–40px
         return `<span style="font-size:${size}px;margin:4px;">${word}</span>`;
