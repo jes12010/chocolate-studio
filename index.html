@@ -685,7 +685,7 @@ function updateClouds() {
  * GROUP AVERAGING + WORD CLOUD SIZING
  ***********************/
 function loadGroupRatings() {
-  if (!firebaseEnabled) return;
+  if (!firebaseEnabled || !sessionID || !currentChocolateId) return;
 
   db.ref(`ratings/${sessionID}/${currentChocolateId}`).on("value", snapshot => {
     const all = snapshot.val();
@@ -721,25 +721,26 @@ function loadGroupRatings() {
       (u.aromaWords || []).forEach(w => aromaFreq[w] = (aromaFreq[w]||0)+1);
     });
 
-    const maxM = Math.max(...Object.values(mouthfeelFreq), 1);
-    const maxA = Math.max(...Object.values(aromaFreq), 1);
+    if (currentTab === "all") {
+      const maxM = Math.max(...Object.values(mouthfeelFreq), 1);
+      const maxA = Math.max(...Object.values(aromaFreq), 1);
 
-    mouthfeelCloud.innerHTML = Object.entries(mouthfeelFreq)
-      .map(([word, count]) => {
-        const size = 14 + (count / maxM) * 26;
-        return `<span style="font-size:${size}px;margin:4px;">${word}</span>`;
-      })
-      .join("");
+      mouthfeelCloud.innerHTML = Object.entries(mouthfeelFreq)
+        .map(([word, count]) => {
+          const size = 14 + (count / maxM) * 26;
+          return `<span style="font-size:${size}px;margin:4px;">${word}</span>`;
+        })
+        .join("");
 
-    aromaCloud.innerHTML = Object.entries(aromaFreq)
-      .map(([word, count]) => {
-        const size = 14 + (count / maxA) * 26;
-        return `<span style="font-size:${size}px;margin:4px;">${word}</span>`;
-      })
-      .join("");
+      aromaCloud.innerHTML = Object.entries(aromaFreq)
+        .map(([word, count]) => {
+          const size = 14 + (count / maxA) * 26;
+          return `<span style="font-size:${size}px;margin:4px;">${word}</span>`;
+        })
+        .join("");
+    }
   });
 }
-
 /***********************
  * FIREBASE SYNC
  ***********************/
