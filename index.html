@@ -5,8 +5,9 @@
   <title>Chocolate Tasting</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Chart.js -->
+  <!-- Chart.js and Annotation Plugin -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
 
   <!-- Firebase compat SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -32,7 +33,7 @@
     }
     .hidden { display: none; }
 
-    #aromaCloud, #mouthfeelCloud {
+    #mouthfeelCloud {
       min-height: 100px;
       width: 100%;
       display: flex;
@@ -236,11 +237,6 @@
     <!-- AROMAS SECTION -->
     <h3>Aromas Progression</h3>
 
-    <!-- TIME-SERIES VISUALIZATION -->
-    <div id="aroma-plot-section" class="visual-box">
-      <canvas id="aromaTimelineCanvas"></canvas>
-    </div>
-
     <!-- THREE SEQUENTIAL PROMPTS WITH DESCRIPTOR BUTTONS -->
     <div id="aroma-prompts-container">
       <div class="aroma-stage-group">
@@ -257,6 +253,11 @@
         <h4>3. What aromas linger at the end?</h4>
         <div id="aroma-buttons-finish" class="descriptor-buttons"></div>
       </div>
+    </div>
+
+    <!-- TIME-SERIES VISUALIZATION (MOVED BELOW PROMPTS) -->
+    <div id="aroma-plot-section" class="visual-box">
+      <canvas id="aromaTimelineCanvas"></canvas>
     </div>
 
     <!-- NAVIGATION BUTTONS -->
@@ -311,23 +312,23 @@
      ***********************/
     const BASIC_TASTES = ["Sweet","Sour","Bitter","Salty","Umami"];
 
-    // Renamed slashes to ampersands to avoid Firebase key errors
-    const AROMA_COLORS = {
-      "Fruity": "#d95f02",
-      "Vegetal": "#1b9e77",
-      "Floral & Spices": "#7570b3",
-      "Sweet & Dairy": "#e6ab02",
-      "Nutty & Toasted": "#a6761d",
-      "Cocoa": "#6a3d9a"
-    };
-
+    // REORDERED CATEGORIES: Cocoa/Chocolate, Fruity, Nutty/Toasted, Vegetal, Floral/Spices, Sweet & Dairy
     const AROMA_DESCRIPTORS_BY_AXIS = {
+      "Cocoa": ["Cocoa","Dark Chocolate","Cocoa Powder","Fermented"],
       "Fruity": ["Berry","Strawberry","Raspberry","Cherry","Blueberry","Blackberry","Cranberry","Citrus","Orange","Lemon","Lime","Stone Fruit","Peach","Plum","Apricot","Apple","Fig","Dried Fruit","Date","Raisin","Prune","Tropical Fruit","Mango","Banana","Passionfruit"],
+      "Nutty & Toasted": ["Hazelnut","Almond","Peanut","Walnut","Macadamia","Pecan","Malt","Toast","Sweet Popcorn","Bran","Tortilla","Cereal/Grain","Coffee","Smoky","Burnt"],
       "Vegetal": ["Earthy","Herb-like","Green","Hay-like","Olive","Mushroom","Tobacco","Smoked Wood"],
       "Floral & Spices": ["Rose","Jasmine","Lavender","Chamomile","Cinnamon","Nutmeg","Clove","Pepper","Anise","Bergamot","Licorice"],
-      "Sweet & Dairy": ["Vanilla","Coconut","Maple Syrup","Molasses","Honey","Caramel","Toffee","Burnt Sugar","Milk","Cream","Butter","Yogurt"],
-      "Nutty & Toasted": ["Hazelnut","Almond","Peanut","Walnut","Macadamia","Pecan","Malt","Toast","Sweet Popcorn","Bran","Tortilla","Cereal/Grain","Coffee","Smoky","Burnt"],
-      "Cocoa": ["Cocoa","Dark Chocolate","Cocoa Powder","Fermented"]
+      "Sweet & Dairy": ["Vanilla","Coconut","Maple Syrup","Molasses","Honey","Caramel","Toffee","Burnt Sugar","Milk","Cream","Butter","Yogurt"]
+    };
+
+    const AROMA_COLORS = {
+      "Cocoa": "#6a3d9a",
+      "Fruity": "#d95f02",
+      "Nutty & Toasted": "#a6761d",
+      "Vegetal": "#1b9e77",
+      "Floral & Spices": "#7570b3",
+      "Sweet & Dairy": "#e6ab02"
     };
 
     const MOUTHFEEL_DESCRIPTORS = [
@@ -415,23 +416,56 @@
         type: "line",
         data: {
           labels: ["Initial", "Middle", "Finish"],
-          datasets: []
+          datasets: [
+            {
+              label: "Initial Phase",
+              data: [4, 1.5, 0.5],
+              borderColor: "#ff9f43",
+              backgroundColor: "rgba(255, 159, 67, 0.2)",
+              borderWidth: 3,
+              tension: 0.4,
+              fill: true
+            },
+            {
+              label: "Middle Phase",
+              data: [1, 4.5, 1.5],
+              borderColor: "#ee5253",
+              backgroundColor: "rgba(238, 82, 83, 0.2)",
+              borderWidth: 3,
+              tension: 0.4,
+              fill: true
+            },
+            {
+              label: "Finish Phase",
+              data: [0.5, 1.5, 4],
+              borderColor: "#10ac84",
+              backgroundColor: "rgba(16, 172, 132, 0.2)",
+              borderWidth: 3,
+              tension: 0.4,
+              fill: true
+            }
+          ]
         },
         options: {
           responsive: true,
           scales: {
             y: {
               min: 0,
-              max: 5,
-              title: { display: true, text: "Tasters / Selection", color: "#f7e7d3" },
-              ticks: { color: "#f7e7d3", stepSize: 1 }
+              max: 6,
+              title: { display: true, text: "Aroma Intensity Trend", color: "#f7e7d3" },
+              ticks: { display: false },
+              grid: { color: "rgba(255,255,255,0.1)" }
             },
             x: {
-              ticks: { color: "#f7e7d3" }
+              ticks: { color: "#f7e7d3", font: { size: 14, weight: 'bold' } },
+              grid: { color: "rgba(255,255,255,0.1)" }
             }
           },
           plugins: {
-            legend: { labels: { color: "#f7e7d3" } }
+            legend: { labels: { color: "#f7e7d3" } },
+            annotation: {
+              annotations: {}
+            }
           }
         }
       });
@@ -460,8 +494,7 @@
       basicRadarChart.data.datasets[0].data = BASIC_TASTES.map(() => 0);
       basicRadarChart.update();
 
-      aromaTimelineChart.data.datasets = [];
-      aromaTimelineChart.update();
+      updateAromaChart();
     }
 
     /***********************
@@ -555,7 +588,7 @@
     }
 
     function handleAromaSelection(stage, word, button) {
-      if (currentTab !== "my") return; // Disable clicking on "Everyone's Ratings" tab
+      if (currentTab !== "my") return;
 
       const stageSet = myRatings.aromaStages[stage];
       if (stageSet.has(word)) {
@@ -572,24 +605,61 @@
 
     function updateAromaChart() {
       if (currentTab === "my") {
-        const selectedWords = new Set([
-          ...myRatings.aromaStages.initial,
-          ...myRatings.aromaStages.middle,
-          ...myRatings.aromaStages.finish
-        ]);
+        const initialWords = Array.from(myRatings.aromaStages.initial);
+        const middleWords = Array.from(myRatings.aromaStages.middle);
+        const finishWords = Array.from(myRatings.aromaStages.finish);
 
-        const datasets = Array.from(selectedWords).map(word => ({
-          label: word,
-          data: [
-            myRatings.aromaStages.initial.has(word) ? 1 : 0,
-            myRatings.aromaStages.middle.has(word) ? 1 : 0,
-            myRatings.aromaStages.finish.has(word) ? 1 : 0
-          ],
-          tension: 0.3,
-          borderWidth: 3
-        }));
+        const annotations = {};
 
-        aromaTimelineChart.data.datasets = datasets;
+        if (initialWords.length > 0) {
+          annotations.initialCloud = {
+            type: 'label',
+            xValue: 0,
+            yValue: 4.3,
+            content: initialWords,
+            color: '#ffffff',
+            backgroundColor: 'rgba(74, 58, 54, 0.85)',
+            borderColor: '#ff9f43',
+            borderWidth: 1.5,
+            borderRadius: 6,
+            font: { size: 12, weight: 'bold' },
+            padding: 6
+          };
+        }
+
+        if (middleWords.length > 0) {
+          annotations.middleCloud = {
+            type: 'label',
+            xValue: 1,
+            yValue: 4.8,
+            content: middleWords,
+            color: '#ffffff',
+            backgroundColor: 'rgba(74, 58, 54, 0.85)',
+            borderColor: '#ee5253',
+            borderWidth: 1.5,
+            borderRadius: 6,
+            font: { size: 12, weight: 'bold' },
+            padding: 6
+          };
+        }
+
+        if (finishWords.length > 0) {
+          annotations.finishCloud = {
+            type: 'label',
+            xValue: 2,
+            yValue: 4.3,
+            content: finishWords,
+            color: '#ffffff',
+            backgroundColor: 'rgba(74, 58, 54, 0.85)',
+            borderColor: '#10ac84',
+            borderWidth: 1.5,
+            borderRadius: 6,
+            font: { size: 12, weight: 'bold' },
+            padding: 6
+          };
+        }
+
+        aromaTimelineChart.options.plugins.annotation.annotations = annotations;
         aromaTimelineChart.update();
       }
     }
@@ -747,7 +817,7 @@
               return `<span style="font-size:${size}px;margin:4px;">${word} (${count})</span>`;
             }).join("");
 
-          // Update Group Aroma Timeline
+          // Update Group Aroma Word Clouds on Timeline
           const counts = { initial: {}, middle: {}, finish: {} };
           users.forEach(u => {
             ["initial", "middle", "finish"].forEach(stage => {
@@ -758,23 +828,67 @@
             });
           });
 
-          const allWords = new Set([
-            ...Object.keys(counts.initial),
-            ...Object.keys(counts.middle),
-            ...Object.keys(counts.finish)
-          ]);
+          const formatGroupWords = (stageObj) => {
+            return Object.entries(stageObj)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 5)
+              .map(([word, count]) => `${word} (${count})`);
+          };
 
-          aromaTimelineChart.data.datasets = Array.from(allWords).map(word => ({
-            label: word,
-            data: [
-              counts.initial[word] || 0,
-              counts.middle[word] || 0,
-              counts.finish[word] || 0
-            ],
-            tension: 0.3,
-            borderWidth: 2
-          }));
+          const annotations = {};
+          const initTop = formatGroupWords(counts.initial);
+          const midTop = formatGroupWords(counts.middle);
+          const finTop = formatGroupWords(counts.finish);
 
+          if (initTop.length > 0) {
+            annotations.initialCloud = {
+              type: 'label',
+              xValue: 0,
+              yValue: 4.3,
+              content: initTop,
+              color: '#ffffff',
+              backgroundColor: 'rgba(74, 58, 54, 0.85)',
+              borderColor: '#ff9f43',
+              borderWidth: 1.5,
+              borderRadius: 6,
+              font: { size: 12, weight: 'bold' },
+              padding: 6
+            };
+          }
+
+          if (midTop.length > 0) {
+            annotations.middleCloud = {
+              type: 'label',
+              xValue: 1,
+              yValue: 4.8,
+              content: midTop,
+              color: '#ffffff',
+              backgroundColor: 'rgba(74, 58, 54, 0.85)',
+              borderColor: '#ee5253',
+              borderWidth: 1.5,
+              borderRadius: 6,
+              font: { size: 12, weight: 'bold' },
+              padding: 6
+            };
+          }
+
+          if (finTop.length > 0) {
+            annotations.finishCloud = {
+              type: 'label',
+              xValue: 2,
+              yValue: 4.3,
+              content: finTop,
+              color: '#ffffff',
+              backgroundColor: 'rgba(74, 58, 54, 0.85)',
+              borderColor: '#10ac84',
+              borderWidth: 1.5,
+              borderRadius: 6,
+              font: { size: 12, weight: 'bold' },
+              padding: 6
+            };
+          }
+
+          aromaTimelineChart.options.plugins.annotation.annotations = annotations;
           aromaTimelineChart.update();
         }
       });
