@@ -580,15 +580,14 @@
         const stages = ["initial", "middle", "finish"];
         const groupCounts = {};
 
-        // Helper to find which category axis a descriptor belongs to
         const findGroup = (word) => {
+          const cleanWord = word.replace(/\s\(\d+\)$/, "");
           for (const [axis, words] of Object.entries(AROMA_DESCRIPTORS_BY_AXIS)) {
-            if (words.includes(word)) return axis;
+            if (words.includes(cleanWord)) return axis;
           }
           return null;
         };
 
-        // Calculate descriptor counts per group for each stage
         Object.keys(AROMA_DESCRIPTORS_BY_AXIS).forEach(group => {
           groupCounts[group] = [0, 0, 0];
         });
@@ -602,7 +601,6 @@
           });
         });
 
-        // Build one curve per active aroma group
         const datasets = [];
         Object.entries(groupCounts).forEach(([group, counts]) => {
           const totalSelections = counts.reduce((a, b) => a + b, 0);
@@ -612,15 +610,23 @@
               label: group,
               data: counts,
               borderColor: color,
-              backgroundColor: color + "33", // translucent fill
-              borderWidth: Math.min(2 + totalSelections * 2, 10), // Line width corresponds to selection volume
+              backgroundColor: color + "33",
+              borderWidth: Math.min(2 + totalSelections * 2, 10),
               tension: 0.3,
               fill: false
             });
           }
         });
 
-        // Generate Word Clouds Above Peaks
+        // Helper to format text with matching group colors
+        const buildColoredContent = (words) => {
+          return words.map(w => {
+            const group = findGroup(w);
+            const color = AROMA_COLORS[group] || "#ffffff";
+            return `<span style="color: ${color}; font-weight: bold;">${w}</span>`;
+          });
+        };
+
         const initialWords = Array.from(myRatings.aromaStages.initial);
         const middleWords = Array.from(myRatings.aromaStages.middle);
         const finishWords = Array.from(myRatings.aromaStages.finish);
@@ -634,14 +640,10 @@
             yValue: 4.3,
             xAdjust: 55,
             textAlign: 'left',
-            content: initialWords,
-            color: '#ffffff',
-            backgroundColor: 'rgba(74, 58, 54, 0.85)',
-            borderColor: '#ff9f43',
-            borderWidth: 1.5,
-            borderRadius: 6,
-            font: { size: 12, weight: 'bold' },
-            padding: 6
+            content: buildColoredContent(initialWords),
+            backgroundColor: 'transparent',
+            borderWidth: 0,
+            padding: 0
           };
         }
 
@@ -650,14 +652,11 @@
             type: 'label',
             xValue: 1,
             yValue: 4.8,
-            content: middleWords,
-            color: '#ffffff',
-            backgroundColor: 'rgba(74, 58, 54, 0.85)',
-            borderColor: '#ee5253',
-            borderWidth: 1.5,
-            borderRadius: 6,
-            font: { size: 12, weight: 'bold' },
-            padding: 6
+            textAlign: 'center',
+            content: buildColoredContent(middleWords),
+            backgroundColor: 'transparent',
+            borderWidth: 0,
+            padding: 0
           };
         }
 
@@ -668,14 +667,10 @@
             yValue: 4.3,
             xAdjust: -55,
             textAlign: 'right',
-            content: finishWords,
-            color: '#ffffff',
-            backgroundColor: 'rgba(74, 58, 54, 0.85)',
-            borderColor: '#10ac84',
-            borderWidth: 1.5,
-            borderRadius: 6,
-            font: { size: 12, weight: 'bold' },
-            padding: 6
+            content: buildColoredContent(finishWords),
+            backgroundColor: 'transparent',
+            borderWidth: 0,
+            padding: 0
           };
         }
 
@@ -684,7 +679,6 @@
         aromaTimelineChart.update();
       }
     }
-
     /***********************
      * RESTORE SAVED RATINGS
      ***********************/
@@ -826,70 +820,19 @@
         });
 
         if (currentTab === "all") {
-          // Update Basic Radar
-          basicRadarChart.data.datasets[0].data = avgBasic;
-          basicRadarChart.update();
-
-          // Update Mouthfeel Cloud
-          const maxM = Math.max(...Object.values(mouthfeelFreq), 1);
-          mouthfeelCloud.innerHTML = Object.entries(mouthfeelFreq)
-            .map(([word, count]) => {
-              const size = 14 + (count / maxM) * 26;
-              return `<span style="font-size:${size}px;margin:4px;">${word} (${count})</span>`;
-            }).join("");
-
-          // Helper to map descriptor to category group
-          const findGroup = (word) => {
-            for (const [axis, words] of Object.entries(AROMA_DESCRIPTORS_BY_AXIS)) {
-              if (words.includes(word)) return axis;
-            }
-            return null;
-          };
-
-          // Group aggregation logic across all users
-          const groupCounts = {};
-          Object.keys(AROMA_DESCRIPTORS_BY_AXIS).forEach(group => {
-            groupCounts[group] = [0, 0, 0];
-          });
-
-          const counts = { initial: {}, middle: {}, finish: {} };
-
-          users.forEach(u => {
-            ["initial", "middle", "finish"].forEach((stage, stageIdx) => {
-              const words = u.aromaStages?.[stage] || [];
-              words.forEach(w => {
-                counts[stage][w] = (counts[stage][w] || 0) + 1;
-                const grp = findGroup(w);
-                if (grp) {
-                  groupCounts[grp][stageIdx] += 1;
-                }
-              });
-            });
-          });
-
-          // Build group curves with line widths scaled by total group selection count across users
-          const datasets = [];
-          Object.entries(groupCounts).forEach(([group, stageTotals]) => {
-            const totalSelections = stageTotals.reduce((a, b) => a + b, 0);
-            if (totalSelections > 0) {
-              const color = AROMA_COLORS[group] || "#d4a373";
-              datasets.push({
-                label: group,
-                data: stageTotals,
-                borderColor: color,
-                backgroundColor: color + "33",
-                borderWidth: Math.min(2 + totalSelections * 1.5, 12), // Scales line width by overall group selection
-                tension: 0.3,
-                fill: false
-              });
-            }
-          });
-
           const formatGroupWords = (stageObj) => {
             return Object.entries(stageObj)
               .sort((a, b) => b[1] - a[1])
               .slice(0, 5)
               .map(([word, count]) => `${word} (${count})`);
+          };
+
+          const buildColoredContent = (words) => {
+            return words.map(w => {
+              const group = findGroup(w);
+              const color = AROMA_COLORS[group] || "#ffffff";
+              return `<span style="color: ${color}; font-weight: bold;">${w}</span>`;
+            });
           };
 
           const annotations = {};
@@ -904,14 +847,10 @@
               yValue: 4.3,
               xAdjust: 55,
               textAlign: 'left',
-              content: initTop,
-              color: '#ffffff',
-              backgroundColor: 'rgba(74, 58, 54, 0.85)',
-              borderColor: '#ff9f43',
-              borderWidth: 1.5,
-              borderRadius: 6,
-              font: { size: 12, weight: 'bold' },
-              padding: 6
+              content: buildColoredContent(initTop),
+              backgroundColor: 'transparent',
+              borderWidth: 0,
+              padding: 0
             };
           }
 
@@ -920,14 +859,11 @@
               type: 'label',
               xValue: 1,
               yValue: 4.8,
-              content: midTop,
-              color: '#ffffff',
-              backgroundColor: 'rgba(74, 58, 54, 0.85)',
-              borderColor: '#ee5253',
-              borderWidth: 1.5,
-              borderRadius: 6,
-              font: { size: 12, weight: 'bold' },
-              padding: 6
+              textAlign: 'center',
+              content: buildColoredContent(midTop),
+              backgroundColor: 'transparent',
+              borderWidth: 0,
+              padding: 0
             };
           }
 
@@ -938,14 +874,10 @@
               yValue: 4.3,
               xAdjust: -55,
               textAlign: 'right',
-              content: finTop,
-              color: '#ffffff',
-              backgroundColor: 'rgba(74, 58, 54, 0.85)',
-              borderColor: '#10ac84',
-              borderWidth: 1.5,
-              borderRadius: 6,
-              font: { size: 12, weight: 'bold' },
-              padding: 6
+              content: buildColoredContent(finTop),
+              backgroundColor: 'transparent',
+              borderWidth: 0,
+              padding: 0
             };
           }
 
@@ -953,8 +885,6 @@
           aromaTimelineChart.options.plugins.annotation.annotations = annotations;
           aromaTimelineChart.update();
         }
-      });
-    }
 
     /***********************
      * FIREBASE SYNC
