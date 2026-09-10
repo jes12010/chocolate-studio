@@ -618,61 +618,36 @@
           }
         });
 
-        // Helper to format text with matching group colors
-        const buildColoredContent = (words) => {
-          return words.map(w => {
-            const group = findGroup(w);
-            const color = AROMA_COLORS[group] || "#ffffff";
-            return `<span style="color: ${color}; font-weight: bold;">${w}</span>`;
-          });
-        };
-
         const initialWords = Array.from(myRatings.aromaStages.initial);
         const middleWords = Array.from(myRatings.aromaStages.middle);
         const finishWords = Array.from(myRatings.aromaStages.finish);
 
         const annotations = {};
 
-        if (initialWords.length > 0) {
-          annotations.initialCloud = {
-            type: 'label',
-            xValue: 0,
-            yValue: 4.3,
-            xAdjust: 55,
-            textAlign: 'left',
-            content: buildColoredContent(initialWords),
-            backgroundColor: 'transparent',
-            borderWidth: 0,
-            padding: 0
-          };
-        }
+        // Helper to build individual colored word labels per stage
+        const createWordAnnotations = (words, xVal, baseYVal, xAdjust, align) => {
+          words.forEach((word, idx) => {
+            const group = findGroup(word);
+            const color = AROMA_COLORS[group] || "#ffffff";
+            annotations[`word_${xVal}_${idx}`] = {
+              type: 'label',
+              xValue: xVal,
+              yValue: baseYVal - (idx * 0.25), // Stacks words vertically
+              xAdjust: xAdjust,
+              textAlign: align,
+              content: word,
+              color: color,
+              backgroundColor: 'transparent',
+              borderWidth: 0,
+              font: { size: 12, weight: 'bold' },
+              padding: 0
+            };
+          });
+        };
 
-        if (middleWords.length > 0) {
-          annotations.middleCloud = {
-            type: 'label',
-            xValue: 1,
-            yValue: 4.8,
-            textAlign: 'center',
-            content: buildColoredContent(middleWords),
-            backgroundColor: 'transparent',
-            borderWidth: 0,
-            padding: 0
-          };
-        }
-
-        if (finishWords.length > 0) {
-          annotations.finishCloud = {
-            type: 'label',
-            xValue: 2,
-            yValue: 4.3,
-            xAdjust: -55,
-            textAlign: 'right',
-            content: buildColoredContent(finishWords),
-            backgroundColor: 'transparent',
-            borderWidth: 0,
-            padding: 0
-          };
-        }
+        createWordAnnotations(initialWords, 0, 4.3, 55, 'left');
+        createWordAnnotations(middleWords, 1, 4.8, 0, 'center');
+        createWordAnnotations(finishWords, 2, 4.3, -55, 'right');
 
         aromaTimelineChart.data.datasets = datasets;
         aromaTimelineChart.options.plugins.annotation.annotations = annotations;
@@ -800,6 +775,9 @@
     /***********************
      * REALTIME GROUP DATA
      ***********************/
+    /***********************
+     * REALTIME GROUP DATA
+     ***********************/
     function loadGroupRatings() {
       if (!firebaseEnabled || !sessionID || !currentChocolateId) return;
 
@@ -820,11 +798,9 @@
         });
 
         if (currentTab === "all") {
-          // Update Basic Radar
           basicRadarChart.data.datasets[0].data = avgBasic;
           basicRadarChart.update();
 
-          // Update Mouthfeel Cloud
           const maxM = Math.max(...Object.values(mouthfeelFreq), 1);
           mouthfeelCloud.innerHTML = Object.entries(mouthfeelFreq)
             .map(([word, count]) => {
@@ -832,7 +808,6 @@
               return `<span style="font-size:${size}px;margin:4px;">${word} (${count})</span>`;
             }).join("");
 
-          // Helper to map descriptor to category group
           const findGroup = (word) => {
             const cleanWord = word.replace(/\s\(\d+\)$/, "");
             for (const [axis, words] of Object.entries(AROMA_DESCRIPTORS_BY_AXIS)) {
@@ -841,7 +816,6 @@
             return null;
           };
 
-          // Aggregate group counts and stage descriptors
           const groupCounts = {};
           Object.keys(AROMA_DESCRIPTORS_BY_AXIS).forEach(group => {
             groupCounts[group] = [0, 0, 0];
@@ -862,7 +836,6 @@
             });
           });
 
-          // Build group curves
           const datasets = [];
           Object.entries(groupCounts).forEach(([group, stageTotals]) => {
             const totalSelections = stageTotals.reduce((a, b) => a + b, 0);
@@ -887,57 +860,35 @@
               .map(([word, count]) => `${word} (${count})`);
           };
 
-          const annotations = {};
           const initTop = formatGroupWords(counts.initial);
           const midTop = formatGroupWords(counts.middle);
           const finTop = formatGroupWords(counts.finish);
 
-          if (initTop.length > 0) {
-            annotations.initialCloud = {
-              type: 'label',
-              xValue: 0,
-              yValue: 4.3,
-              xAdjust: 55,
-              textAlign: 'left',
-              content: initTop,
-              color: '#ffffff',
-              backgroundColor: 'transparent',
-              borderWidth: 0,
-              font: { size: 12, weight: 'bold' },
-              padding: 0
-            };
-          }
+          const annotations = {};
 
-          if (midTop.length > 0) {
-            annotations.middleCloud = {
-              type: 'label',
-              xValue: 1,
-              yValue: 4.8,
-              textAlign: 'center',
-              content: midTop,
-              color: '#ffffff',
-              backgroundColor: 'transparent',
-              borderWidth: 0,
-              font: { size: 12, weight: 'bold' },
-              padding: 0
-            };
-          }
+          const createWordAnnotations = (words, xVal, baseYVal, xAdjust, align) => {
+            words.forEach((word, idx) => {
+              const group = findGroup(word);
+              const color = AROMA_COLORS[group] || "#ffffff";
+              annotations[`word_${xVal}_${idx}`] = {
+                type: 'label',
+                xValue: xVal,
+                yValue: baseYVal - (idx * 0.25),
+                xAdjust: xAdjust,
+                textAlign: align,
+                content: word,
+                color: color,
+                backgroundColor: 'transparent',
+                borderWidth: 0,
+                font: { size: 12, weight: 'bold' },
+                padding: 0
+              };
+            });
+          };
 
-          if (finTop.length > 0) {
-            annotations.finishCloud = {
-              type: 'label',
-              xValue: 2,
-              yValue: 4.3,
-              xAdjust: -55,
-              textAlign: 'right',
-              content: finTop,
-              color: '#ffffff',
-              backgroundColor: 'transparent',
-              borderWidth: 0,
-              font: { size: 12, weight: 'bold' },
-              padding: 0
-            };
-          }
+          createWordAnnotations(initTop, 0, 4.3, 55, 'left');
+          createWordAnnotations(midTop, 1, 4.8, 0, 'center');
+          createWordAnnotations(finTop, 2, 4.3, -55, 'right');
 
           aromaTimelineChart.data.datasets = datasets;
           aromaTimelineChart.options.plugins.annotation.annotations = annotations;
