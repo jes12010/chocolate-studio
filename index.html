@@ -811,7 +811,7 @@
 
         const avgBasic = BASIC_TASTES.map(taste => {
           const vals = users.map(u => u.basic?.[taste] ?? 0);
-          return vals.reduce((a,b)=>a+b,0) / vals.length;
+          return vals.reduce((a,b)=>a+b,0) / (vals.length || 1);
         });
 
         const mouthfeelFreq = {};
@@ -820,19 +820,71 @@
         });
 
         if (currentTab === "all") {
+          // Update Basic Radar
+          basicRadarChart.data.datasets[0].data = avgBasic;
+          basicRadarChart.update();
+
+          // Update Mouthfeel Cloud
+          const maxM = Math.max(...Object.values(mouthfeelFreq), 1);
+          mouthfeelCloud.innerHTML = Object.entries(mouthfeelFreq)
+            .map(([word, count]) => {
+              const size = 14 + (count / maxM) * 26;
+              return `<span style="font-size:${size}px;margin:4px;">${word} (${count})</span>`;
+            }).join("");
+
+          // Helper to map descriptor to category group
+          const findGroup = (word) => {
+            const cleanWord = word.replace(/\s\(\d+\)$/, "");
+            for (const [axis, words] of Object.entries(AROMA_DESCRIPTORS_BY_AXIS)) {
+              if (words.includes(cleanWord)) return axis;
+            }
+            return null;
+          };
+
+          // Aggregate group counts and stage descriptors
+          const groupCounts = {};
+          Object.keys(AROMA_DESCRIPTORS_BY_AXIS).forEach(group => {
+            groupCounts[group] = [0, 0, 0];
+          });
+
+          const counts = { initial: {}, middle: {}, finish: {} };
+
+          users.forEach(u => {
+            ["initial", "middle", "finish"].forEach((stage, stageIdx) => {
+              const words = u.aromaStages?.[stage] || [];
+              words.forEach(w => {
+                counts[stage][w] = (counts[stage][w] || 0) + 1;
+                const grp = findGroup(w);
+                if (grp) {
+                  groupCounts[grp][stageIdx] += 1;
+                }
+              });
+            });
+          });
+
+          // Build group curves
+          const datasets = [];
+          Object.entries(groupCounts).forEach(([group, stageTotals]) => {
+            const totalSelections = stageTotals.reduce((a, b) => a + b, 0);
+            if (totalSelections > 0) {
+              const color = AROMA_COLORS[group] || "#d4a373";
+              datasets.push({
+                label: group,
+                data: stageTotals,
+                borderColor: color,
+                backgroundColor: color + "33",
+                borderWidth: Math.min(2 + totalSelections * 1.5, 12),
+                tension: 0.3,
+                fill: false
+              });
+            }
+          });
+
           const formatGroupWords = (stageObj) => {
             return Object.entries(stageObj)
               .sort((a, b) => b[1] - a[1])
               .slice(0, 5)
               .map(([word, count]) => `${word} (${count})`);
-          };
-
-          const buildColoredContent = (words) => {
-            return words.map(w => {
-              const group = findGroup(w);
-              const color = AROMA_COLORS[group] || "#ffffff";
-              return `<span style="color: ${color}; font-weight: bold;">${w}</span>`;
-            });
           };
 
           const annotations = {};
@@ -847,9 +899,11 @@
               yValue: 4.3,
               xAdjust: 55,
               textAlign: 'left',
-              content: buildColoredContent(initTop),
+              content: initTop,
+              color: '#ffffff',
               backgroundColor: 'transparent',
               borderWidth: 0,
+              font: { size: 12, weight: 'bold' },
               padding: 0
             };
           }
@@ -860,9 +914,11 @@
               xValue: 1,
               yValue: 4.8,
               textAlign: 'center',
-              content: buildColoredContent(midTop),
+              content: midTop,
+              color: '#ffffff',
               backgroundColor: 'transparent',
               borderWidth: 0,
+              font: { size: 12, weight: 'bold' },
               padding: 0
             };
           }
@@ -874,9 +930,11 @@
               yValue: 4.3,
               xAdjust: -55,
               textAlign: 'right',
-              content: buildColoredContent(finTop),
+              content: finTop,
+              color: '#ffffff',
               backgroundColor: 'transparent',
               borderWidth: 0,
+              font: { size: 12, weight: 'bold' },
               padding: 0
             };
           }
@@ -885,6 +943,8 @@
           aromaTimelineChart.options.plugins.annotation.annotations = annotations;
           aromaTimelineChart.update();
         }
+      });
+    }
 
     /***********************
      * FIREBASE SYNC
