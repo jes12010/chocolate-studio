@@ -113,9 +113,13 @@
       border-radius: 10px;
       text-align: center;
       margin-top: 15px;
-      height: 450px; /* Expands plot container vertically */
+      height: 400px; 
+      position: relative;
     }
-
+#aromaTimelineCanvas {
+      height: 100% !important;
+      width: 100% !important;
+    }
     .aroma-stage-group {
       background: #4a3a36;
       padding: 15px;
@@ -421,6 +425,7 @@
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           scales: {
             y: {
               min: 0,
@@ -633,7 +638,7 @@
             annotations[`word_${xVal}_${idx}`] = {
               type: 'label',
               xValue: xVal,
-              yValue: baseYVal - (idx * 0.55), // Stacks words vertically
+              yValue: baseYVal - (idx * 0.6), // Stacks words vertically
               xAdjust: xAdjust,
               textAlign: align,
               content: word,
@@ -874,7 +879,7 @@
               annotations[`word_${xVal}_${idx}`] = {
                 type: 'label',
                 xValue: xVal,
-                yValue: baseYVal - (idx * 0.55),
+                yValue: baseYVal - (idx * 0.6),
                 xAdjust: xAdjust,
                 textAlign: align,
                 content: word,
