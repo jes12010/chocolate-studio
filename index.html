@@ -443,65 +443,6 @@
       });
     }
 
-      aromaTimelineChart = new Chart(aromaCtx, {
-        type: "line",
-        data: {
-          labels: ["Initial", "Middle", "Finish"],
-          datasets: [
-            {
-              label: "Initial Phase",
-              data: [4, 1.5, 0.5],
-              borderColor: "#ff9f43",
-              backgroundColor: "rgba(255, 159, 67, 0.2)",
-              borderWidth: 3,
-              tension: 0.4,
-              fill: true
-            },
-            {
-              label: "Middle Phase",
-              data: [1, 4.5, 1.5],
-              borderColor: "#ee5253",
-              backgroundColor: "rgba(238, 82, 83, 0.2)",
-              borderWidth: 3,
-              tension: 0.4,
-              fill: true
-            },
-            {
-              label: "Finish Phase",
-              data: [0.5, 1.5, 4],
-              borderColor: "#10ac84",
-              backgroundColor: "rgba(16, 172, 132, 0.2)",
-              borderWidth: 3,
-              tension: 0.4,
-              fill: true
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: {
-              min: 0,
-              max: 6,
-              title: { display: true, text: "Aroma Intensity Trend", color: "#f7e7d3" },
-              ticks: { display: false },
-              grid: { color: "rgba(255,255,255,0.1)" }
-            },
-            x: {
-              ticks: { color: "#f7e7d3", font: { size: 14, weight: 'bold' } },
-              grid: { color: "rgba(255,255,255,0.1)" }
-            }
-          },
-          plugins: {
-            legend: { labels: { color: "#f7e7d3" } },
-            annotation: {
-              annotations: {}
-            }
-          }
-        }
-      });
-    }
-
     /***********************
      * RESET UI TO BLANK
      ***********************/
