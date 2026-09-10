@@ -113,6 +113,7 @@
       border-radius: 10px;
       text-align: center;
       margin-top: 15px;
+      height: 450px; /* Expands plot container vertically */
     }
 
     .aroma-stage-group {
@@ -423,7 +424,7 @@
           scales: {
             y: {
               min: 0,
-              max: 6,
+              max: 10,
               title: { display: true, text: "Aroma Group Selection", color: "#f7e7d3" },
               ticks: { display: false },
               grid: { color: "rgba(255,255,255,0.1)" }
@@ -632,7 +633,7 @@
             annotations[`word_${xVal}_${idx}`] = {
               type: 'label',
               xValue: xVal,
-              yValue: baseYVal - (idx * 0.25), // Stacks words vertically
+              yValue: baseYVal - (idx * 0.55), // Stacks words vertically
               xAdjust: xAdjust,
               textAlign: align,
               content: word,
@@ -645,9 +646,9 @@
           });
         };
 
-        createWordAnnotations(initialWords, 0, 4.3, 55, 'left');
-        createWordAnnotations(middleWords, 1, 4.8, 0, 'center');
-        createWordAnnotations(finishWords, 2, 4.3, -55, 'right');
+        createWordAnnotations(initialWords, 0, 9.5, 55, 'left');
+        createWordAnnotations(middleWords, 1, 9.5, 0, 'center');
+        createWordAnnotations(finishWords, 2, 9.5, -55, 'right');
 
         aromaTimelineChart.data.datasets = datasets;
         aromaTimelineChart.options.plugins.annotation.annotations = annotations;
@@ -873,7 +874,7 @@
               annotations[`word_${xVal}_${idx}`] = {
                 type: 'label',
                 xValue: xVal,
-                yValue: baseYVal - (idx * 0.25),
+                yValue: baseYVal - (idx * 0.55),
                 xAdjust: xAdjust,
                 textAlign: align,
                 content: word,
@@ -886,9 +887,9 @@
             });
           };
 
-          createWordAnnotations(initTop, 0, 4.3, 55, 'left');
-          createWordAnnotations(midTop, 1, 4.8, 0, 'center');
-          createWordAnnotations(finTop, 2, 4.3, -55, 'right');
+          createWordAnnotations(initTop, 0, 9.5, 55, 'left');
+          createWordAnnotations(midTop, 1, 9.5, 0, 'center');
+          createWordAnnotations(finTop, 2, 9.5, -55, 'right');
 
           aromaTimelineChart.data.datasets = datasets;
           aromaTimelineChart.options.plugins.annotation.annotations = annotations;
