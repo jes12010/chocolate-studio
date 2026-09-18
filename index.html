@@ -190,14 +190,19 @@
 <body>
   <h1>Chocolate Tasting</h1>
 
-  <!-- SESSION ID + USER ID MODAL -->
+ <!-- STUDENT IDENTIFIER MODAL -->
   <div id="sessionModal">
     <div id="sessionCard">
-      <h2>Enter Session ID</h2>
-      <input id="sessionInput" type="text" placeholder="e.g. groupA" />
+      <h2>Student Identification</h2>
+      
+      <label style="display:block; text-align:left; margin-top:10px;">First Name</label>
+      <input id="firstNameInput" type="text" placeholder="e.g. Jane" />
 
-      <h3>Your User ID</h3>
-      <input id="userIdInput" type="text" readonly />
+      <label style="display:block; text-align:left; margin-top:10px;">Last Name</label>
+      <input id="lastNameInput" type="text" placeholder="e.g. Doe" />
+
+      <label style="display:block; text-align:left; margin-top:10px;">Date</label>
+      <input id="dateInput" type="text" readonly />
 
       <button id="startSessionBtn">Start Session</button>
     </div>
@@ -298,19 +303,54 @@
     }
 
     /***********************
-     * AUTO-GENERATED USER ID
+     * USER & DATE LOGIC
      ***********************/
-    let userID = localStorage.getItem("tasterID");
-    if (!userID) {
-      userID = "user_" + Math.random().toString(36).substring(2, 10);
-      localStorage.setItem("tasterID", userID);
+    let firstName = "";
+    let lastName = "";
+    let userID = "";
+    let currentDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+    let sessionID = currentDate; // Uses current date as session/cohort grouping
+
+    // Automatically set date input field
+    document.getElementById("dateInput").value = currentDate;
+
+    // Restore saved student name if returning on the same browser
+    if (localStorage.getItem("tasterFirstName")) {
+      document.getElementById("firstNameInput").value = localStorage.getItem("tasterFirstName");
     }
-    document.getElementById("userIdInput").value = userID;
+    if (localStorage.getItem("tasterLastName")) {
+      document.getElementById("lastNameInput").value = localStorage.getItem("tasterLastName");
+    }
 
     /***********************
-     * SESSION ID
+     * MODAL SUBMIT HANDLER
      ***********************/
-    let sessionID = "";
+    const startSessionBtn = document.getElementById("startSessionBtn");
+    const firstNameInput = document.getElementById("firstNameInput");
+    const lastNameInput = document.getElementById("lastNameInput");
+    const sessionModal = document.getElementById("sessionModal");
+
+    startSessionBtn.addEventListener("click", () => {
+      const fName = firstNameInput.value.trim();
+      const lName = lastNameInput.value.trim();
+
+      if (!fName || !lName) {
+        alert("Please enter both your first and last name.");
+        return;
+      }
+
+      firstName = fName;
+      lastName = lName;
+
+      // Save name locally for future sessions
+      localStorage.setItem("tasterFirstName", firstName);
+      localStorage.setItem("tasterLastName", lastName);
+
+      // Create a deterministic Firebase path-safe key based on student name (e.g., "jane_doe")
+      userID = `${firstName}_${lastName}`.toLowerCase().replace(/[^a-z0-9_]/g, "");
+
+      sessionModal.style.display = "none";
+    });
 
     /***********************
      * CONSTANTS
@@ -370,21 +410,6 @@
 
     const tabMy = document.getElementById("tab-my");
     const tabAll = document.getElementById("tab-all");
-
-    /***********************
-     * SESSION MODAL LOGIC
-     ***********************/
-    const startSessionBtn = document.getElementById("startSessionBtn");
-    const sessionInput = document.getElementById("sessionInput");
-    const sessionModal = document.getElementById("sessionModal");
-
-    startSessionBtn.addEventListener("click", () => {
-      const input = sessionInput.value.trim().toLowerCase();
-      if (!input) return;
-
-      sessionID = input;
-      sessionModal.style.display = "none";
-    });
 
     /***********************
      * CHARTS
@@ -781,9 +806,6 @@
     /***********************
      * REALTIME GROUP DATA
      ***********************/
-    /***********************
-     * REALTIME GROUP DATA
-     ***********************/
     function loadGroupRatings() {
       if (!firebaseEnabled || !sessionID || !currentChocolateId) return;
 
@@ -907,9 +929,15 @@
      * FIREBASE SYNC
      ***********************/
     function updateFirebase() {
-      if (!firebaseEnabled || !sessionID || !currentChocolateId) return;
+      if (!firebaseEnabled || !sessionID || !currentChocolateId || !userID) return;
 
       db.ref(`ratings/${sessionID}/${currentChocolateId}/${userID}`).set({
+        studentInfo: {
+          firstName: firstName,
+          lastName: lastName,
+          date: currentDate,
+          timestamp: Date.now()
+        },
         basic: Object.fromEntries(Object.entries(myRatings.basic)),
         mouthfeel: Array.from(myRatings.mouthfeel),
         aromaStages: {
@@ -919,7 +947,6 @@
         }
       });
     }
-
     /***********************
      * NAVIGATION BUTTONS
      ***********************/
