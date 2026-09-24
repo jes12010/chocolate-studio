@@ -29,7 +29,7 @@
     .container {
       width: 95%;
       margin: auto;
-      max-width: 1000px; /* EXPANDED TO GIVE PLOTS & WORDS MORE HORIZONTAL ROOM */
+      max-width: 1100px;
       padding-bottom: 40px;
     }
     .hidden { display: none; }
@@ -133,46 +133,62 @@
       box-sizing: border-box;
     }
 
-    /* AROMA WORDS CONTAINER ABOVE PLOT (EXPANDED TO DISPLAY ALL AT ONCE) */
-    .aroma-words-container {
+    /* SIDE-BY-SIDE SIDE PANEL LAYOUT FOR AROMA VISUALIZATION */
+    .aroma-split-layout {
       display: flex;
-      justify-content: space-between;
-      width: 100%;
-      min-height: 100px; /* ALLOWS CONTAINER TO GROW FLEXIBLY WITHOUT SCROLLING */
-      overflow: visible; /* ELIMINATES SCROLLBARS FOR SCREENSHOTS */
-      margin-bottom: 15px;
-      padding: 12px;
-      background: rgba(0, 0, 0, 0.25);
-      border-radius: 6px;
+      flex-direction: row;
+      gap: 15px;
+      align-items: stretch;
+      background: #4a3a36;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 15px;
       box-sizing: border-box;
     }
 
-    .word-column {
+    .aroma-words-side {
       flex: 1;
-      text-align: center;
-      padding: 0 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 10px;
+      border-radius: 6px;
+      max-height: 380px;
+      overflow-y: auto;
+    }
+
+    .aroma-chart-side {
+      flex: 2;
+      position: relative;
+      min-height: 350px;
+      height: 380px;
+    }
+
+    .word-column {
+      text-align: left;
     }
 
     .word-column h4 {
-      margin: 0 0 8px 0;
+      margin: 0 0 4px 0;
       color: #f7e7d3;
-      font-size: 14px;
+      font-size: 13px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      padding-bottom: 4px;
+      padding-bottom: 2px;
+      text-align: left;
     }
 
     .word-list {
       display: flex;
       flex-wrap: wrap;
-      justify-content: center;
-      gap: 5px;
+      gap: 4px;
     }
 
     .aroma-chip {
       display: inline-block;
-      padding: 3px 8px;
+      padding: 2px 6px;
       border-radius: 4px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: bold;
       line-height: 1.2;
     }
@@ -247,6 +263,15 @@
       width: 100%;
       font-size: 16px;
       font-weight: bold;
+    }
+
+    @media (max-width: 768px) {
+      .aroma-split-layout {
+        flex-direction: column;
+      }
+      .aroma-chart-side {
+        height: 280px;
+      }
     }
   </style>
 </head>
@@ -338,9 +363,9 @@
     </div>
 
     <!-- TIME-SERIES VISUALIZATION -->
-    <div id="aroma-plot-section" class="visual-box">
-      <!-- Dynamic header for displaying all aroma words at once -->
-      <div id="aromaWordsHeader" class="aroma-words-container">
+    <div id="aroma-plot-section" class="aroma-split-layout">
+      <!-- Side panel for displaying selected words -->
+      <div id="aromaWordsHeader" class="aroma-words-side">
         <div class="word-column" id="initialWordsCol">
           <h4>Initial</h4>
           <div class="word-list" id="initialWordsList"></div>
@@ -355,8 +380,8 @@
         </div>
       </div>
 
-      <!-- Plot Canvas -->
-      <div class="canvas-wrapper">
+      <!-- Plot Canvas Side -->
+      <div class="aroma-chart-side">
         <canvas id="aromaTimelineCanvas"></canvas>
       </div>
     </div>
@@ -384,6 +409,7 @@
 
     let firebaseEnabled = false;
     let db = null;
+    let activeListenerRef = null;
 
     try {
       firebase.initializeApp(firebaseConfig);
@@ -581,10 +607,16 @@
 
       mouthfeelCloud.innerHTML = "";
 
-      basicRadarChart.data.datasets[0].data = BASIC_TASTES.map(() => 0);
-      basicRadarChart.update();
+      if (basicRadarChart) {
+        basicRadarChart.data.datasets[0].data = BASIC_TASTES.map(() => 0);
+        basicRadarChart.update();
+      }
 
-      updateAromaChart();
+      renderAromaWordsAbovePlot([], [], []);
+      if (aromaTimelineChart) {
+        aromaTimelineChart.data.datasets = [];
+        aromaTimelineChart.update();
+      }
     }
 
     /***********************
@@ -642,7 +674,7 @@
     }
 
     /***********************
-     * HELPER TO RENDER WORDS ABOVE PLOT
+     * HELPER TO RENDER WORDS
      ***********************/
     function renderAromaWordsAbovePlot(initialWords, middleWords, finishWords) {
       const findGroup = (word) => {
@@ -664,9 +696,9 @@
         }).join("");
       };
 
-      populateColumn("initialWordsList", initialWords);
-      populateColumn("middleWordsList", middleWords);
-      populateColumn("finishWordsList", finishWords);
+      populateColumn("initialWordsList", initialWords || []);
+      populateColumn("middleWordsList", middleWords || []);
+      populateColumn("finishWordsList", finishWords || []);
     }
 
     /***********************
@@ -822,7 +854,7 @@
 
         updateAromaChart();
         updateClouds();
-      });
+      }, err => console.warn("Firebase read error:", err));
     }
 
     /***********************
@@ -832,7 +864,7 @@
       currentChocolateId = chocId;
 
       const btn = document.querySelector(`.choc-btn[data-choc-id="${chocId}"]`);
-      chocTitle.textContent = btn.textContent;
+      chocTitle.textContent = btn ? btn.textContent : chocId;
 
       pageSelect.classList.add("hidden");
       pageRatings.classList.remove("hidden");
@@ -884,7 +916,7 @@
           if (d === selectedHistoryDate) opt.selected = true;
           historyDateSelect.appendChild(opt);
         });
-      });
+      }, err => console.warn("Firebase dates read error:", err));
     }
 
     historyDateSelect.addEventListener("change", (e) => {
@@ -941,9 +973,26 @@
 
       const targetDate = (currentTab === "all") ? selectedHistoryDate : sessionID;
 
-      db.ref(`ratings/${targetDate}/${currentChocolateId}`).on("value", snapshot => {
+      // Detach previous active listener if present
+      if (activeListenerRef) {
+        activeListenerRef.off();
+      }
+
+      activeListenerRef = db.ref(`ratings/${targetDate}/${currentChocolateId}`);
+      
+      activeListenerRef.on("value", snapshot => {
         const all = snapshot.val();
-        if (!all) return;
+        
+        // NULL SAFEGUARD: If no data exists yet for this date/chocolate
+        if (!all) {
+          basicRadarChart.data.datasets[0].data = BASIC_TASTES.map(() => 0);
+          basicRadarChart.update();
+          mouthfeelCloud.innerHTML = "<em>No group responses recorded yet.</em>";
+          renderAromaWordsAbovePlot([], [], []);
+          aromaTimelineChart.data.datasets = [];
+          aromaTimelineChart.update();
+          return;
+        }
 
         const users = Object.values(all);
 
@@ -1031,6 +1080,8 @@
           aromaTimelineChart.data.datasets = datasets;
           aromaTimelineChart.update();
         }
+      }, err => {
+        console.warn("Firebase realtime listen error:", err);
       });
     }
 
@@ -1054,7 +1105,7 @@
           middle: Array.from(myRatings.aromaStages.middle),
           finish: Array.from(myRatings.aromaStages.finish)
         }
-      });
+      }).catch(err => console.warn("Firebase write error:", err));
     }
 
     /***********************
@@ -1064,14 +1115,12 @@
 
     document.getElementById("nextChocolate").addEventListener("click", () => {
       const idx = chocolates.indexOf(currentChocolateId);
-      const next = chocolates[(idx + 1) % chocolates.length];
-      loadChocolate(next);
+      loadChocolate(chocolates[(idx + 1) % chocolates.length]);
     });
 
     document.getElementById("prevChocolate").addEventListener("click", () => {
       const idx = chocolates.indexOf(currentChocolateId);
-      const prev = chocolates[(idx - 1 + chocolates.length) % chocolates.length];
-      loadChocolate(prev);
+      loadChocolate(chocolates[(idx - 1 + chocolates.length) % chocolates.length]);
     });
   </script>
 </body>
