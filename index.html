@@ -85,7 +85,7 @@
       box-shadow: 0 0 8px rgba(255,255,255,0.8);
     }
 
-    /* TABS */
+    /* TABS & DATE SELECTOR */
     .tabs {
       display: flex;
       justify-content: center;
@@ -106,6 +106,19 @@
       font-weight: bold;
     }
 
+    .date-selector-container {
+      text-align: center;
+      margin-top: 15px;
+    }
+    .date-selector-container select {
+      padding: 8px 12px;
+      font-size: 16px;
+      border-radius: 6px;
+      background: #5a3e36;
+      color: #f7e7d3;
+      border: 1px solid #d4a373;
+    }
+
     /* VISUALS BOX */
     .visual-box {
       background: #4a3a36;
@@ -113,13 +126,55 @@
       border-radius: 10px;
       text-align: center;
       margin-top: 15px;
-      height: 400px; 
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* AROMA WORDS CONTAINER ABOVE PLOT */
+    .aroma-words-container {
+      display: flex;
+      justify-content: space-between;
+      max-height: 160px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+    }
+
+    .word-column {
+      flex: 1;
+      text-align: center;
+      padding: 0 5px;
+    }
+
+    .word-column h4 {
+      margin: 0 0 5px 0;
+      color: #f7e7d3;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .word-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .aroma-chip {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .canvas-wrapper {
+      height: 320px;
       position: relative;
     }
-#aromaTimelineCanvas {
-      height: 100% !important;
-      width: 100% !important;
-    }
+
     .aroma-stage-group {
       background: #4a3a36;
       padding: 15px;
@@ -167,13 +222,14 @@
     #sessionCard input {
       width: 90%;
       padding: 10px;
-      margin-top: 10px;
+      margin-top: 5px;
+      margin-bottom: 15px;
       border-radius: 6px;
       border: none;
       font-size: 16px;
     }
     #startSessionBtn {
-      margin-top: 20px;
+      margin-top: 10px;
       padding: 10px 16px;
       background: #d4a373;
       border: none;
@@ -190,18 +246,18 @@
 <body>
   <h1>Chocolate Tasting</h1>
 
- <!-- STUDENT IDENTIFIER MODAL -->
+  <!-- STUDENT IDENTIFIER MODAL -->
   <div id="sessionModal">
     <div id="sessionCard">
       <h2>Student Identification</h2>
-      
-      <label style="display:block; text-align:left; margin-top:10px;">First Name</label>
+
+      <label style="display:block; text-align:left;">First Name</label>
       <input id="firstNameInput" type="text" placeholder="e.g. Jane" />
 
-      <label style="display:block; text-align:left; margin-top:10px;">Last Name</label>
+      <label style="display:block; text-align:left;">Last Name</label>
       <input id="lastNameInput" type="text" placeholder="e.g. Doe" />
 
-      <label style="display:block; text-align:left; margin-top:10px;">Date</label>
+      <label style="display:block; text-align:left;">Date</label>
       <input id="dateInput" type="text" readonly />
 
       <button id="startSessionBtn">Start Session</button>
@@ -228,12 +284,20 @@
       <button id="tab-all">Everyone's Ratings</button>
     </div>
 
+    <!-- DATE SELECTOR FOR PAST DATES (Visible in Everyone's Tab) -->
+    <div id="dateSelectorContainer" class="date-selector-container hidden">
+      <label for="historyDateSelect">Select Date: </label>
+      <select id="historyDateSelect"></select>
+    </div>
+
     <!-- BASIC TASTES -->
     <h3>Basic Tastes</h3>
     <div id="basic-sliders"></div>
 
     <div id="basic-plot-section" class="visual-box">
-      <canvas id="basicRadar"></canvas>
+      <div class="canvas-wrapper">
+        <canvas id="basicRadar"></canvas>
+      </div>
     </div>
 
     <!-- MOUTHFEEL -->
@@ -265,9 +329,28 @@
       </div>
     </div>
 
-    <!-- TIME-SERIES VISUALIZATION  -->
+    <!-- TIME-SERIES VISUALIZATION -->
     <div id="aroma-plot-section" class="visual-box">
-      <canvas id="aromaTimelineCanvas"></canvas>
+      <!-- Dedicated scrollable header for word descriptors -->
+      <div id="aromaWordsHeader" class="aroma-words-container">
+        <div class="word-column" id="initialWordsCol">
+          <h4>Initial</h4>
+          <div class="word-list" id="initialWordsList"></div>
+        </div>
+        <div class="word-column" id="middleWordsCol">
+          <h4>Middle</h4>
+          <div class="word-list" id="middleWordsList"></div>
+        </div>
+        <div class="word-column" id="finishWordsCol">
+          <h4>Finish</h4>
+          <div class="word-list" id="finishWordsList"></div>
+        </div>
+      </div>
+
+      <!-- Plot Canvas -->
+      <div class="canvas-wrapper">
+        <canvas id="aromaTimelineCanvas"></canvas>
+      </div>
     </div>
 
     <!-- NAVIGATION BUTTONS -->
@@ -308,13 +391,12 @@
     let firstName = "";
     let lastName = "";
     let userID = "";
-    let currentDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
-    let sessionID = currentDate; // Uses current date as session/cohort grouping
+    let currentDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    let sessionID = currentDate; 
+    let selectedHistoryDate = currentDate;
 
-    // Automatically set date input field
     document.getElementById("dateInput").value = currentDate;
 
-    // Restore saved student name if returning on the same browser
     if (localStorage.getItem("tasterFirstName")) {
       document.getElementById("firstNameInput").value = localStorage.getItem("tasterFirstName");
     }
@@ -323,41 +405,10 @@
     }
 
     /***********************
-     * MODAL SUBMIT HANDLER
-     ***********************/
-    const startSessionBtn = document.getElementById("startSessionBtn");
-    const firstNameInput = document.getElementById("firstNameInput");
-    const lastNameInput = document.getElementById("lastNameInput");
-    const sessionModal = document.getElementById("sessionModal");
-
-    startSessionBtn.addEventListener("click", () => {
-      const fName = firstNameInput.value.trim();
-      const lName = lastNameInput.value.trim();
-
-      if (!fName || !lName) {
-        alert("Please enter both your first and last name.");
-        return;
-      }
-
-      firstName = fName;
-      lastName = lName;
-
-      // Save name locally for future sessions
-      localStorage.setItem("tasterFirstName", firstName);
-      localStorage.setItem("tasterLastName", lastName);
-
-      // Create a deterministic Firebase path-safe key based on student name (e.g., "jane_doe")
-      userID = `${firstName}_${lastName}`.toLowerCase().replace(/[^a-z0-9_]/g, "");
-
-      sessionModal.style.display = "none";
-    });
-
-    /***********************
      * CONSTANTS
      ***********************/
     const BASIC_TASTES = ["Sweet","Sour","Bitter","Salty","Umami"];
 
-    // CATEGORIES: Cocoa/Chocolate, Fruity, Nutty/Toasted, Vegetal, Floral/Spices, Sweet & Dairy
     const AROMA_DESCRIPTORS_BY_AXIS = {
       "Cocoa": ["Cocoa","Dark Chocolate","Cocoa Powder","Fermented"],
       "Fruity": ["Berry","Strawberry","Raspberry","Cherry","Blueberry","Blackberry","Cranberry","Citrus","Orange","Lemon","Lime","Stone Fruit","Peach","Plum","Apricot","Apple","Fig","Dried Fruit","Date","Raisin","Prune","Tropical Fruit","Mango","Banana","Passionfruit"],
@@ -410,6 +461,35 @@
 
     const tabMy = document.getElementById("tab-my");
     const tabAll = document.getElementById("tab-all");
+    const dateSelectorContainer = document.getElementById("dateSelectorContainer");
+    const historyDateSelect = document.getElementById("historyDateSelect");
+
+    /***********************
+     * MODAL SUBMIT HANDLER
+     ***********************/
+    const startSessionBtn = document.getElementById("startSessionBtn");
+    const firstNameInput = document.getElementById("firstNameInput");
+    const lastNameInput = document.getElementById("lastNameInput");
+    const sessionModal = document.getElementById("sessionModal");
+
+    startSessionBtn.addEventListener("click", () => {
+      const fName = firstNameInput.value.trim();
+      const lName = lastNameInput.value.trim();
+
+      if (!fName || !lName) {
+        alert("Please enter both your first and last name.");
+        return;
+      }
+
+      firstName = fName;
+      lastName = lName;
+
+      localStorage.setItem("tasterFirstName", firstName);
+      localStorage.setItem("tasterLastName", lastName);
+
+      userID = `${firstName}_${lastName}`.toLowerCase().replace(/[^a-z0-9_]/g, "");
+      sessionModal.style.display = "none";
+    });
 
     /***********************
      * CHARTS
@@ -437,6 +517,8 @@
           }]
         },
         options: {
+          responsive: true,
+          maintainAspectRatio: false,
           scales: { r: { min: 0, max: 5, ticks: { stepSize: 1 } } },
           plugins: { legend: { display: false } }
         }
@@ -454,8 +536,8 @@
           scales: {
             y: {
               min: 0,
-              max: 10,
-              title: { display: true, text: "Aroma Group Selection", color: "#f7e7d3" },
+              max: 3.5,
+              title: { display: true, text: "Aroma Progression", color: "#f7e7d3" },
               ticks: { display: false },
               grid: { color: "rgba(255,255,255,0.1)" }
             },
@@ -465,10 +547,7 @@
             }
           },
           plugins: {
-            legend: { labels: { color: "#f7e7d3" } },
-            annotation: {
-              annotations: {}
-            }
+            legend: { labels: { color: "#f7e7d3" } }
           }
         }
       });
@@ -555,6 +634,34 @@
     }
 
     /***********************
+     * HELPER TO RENDER WORDS ABOVE PLOT
+     ***********************/
+    function renderAromaWordsAbovePlot(initialWords, middleWords, finishWords) {
+      const findGroup = (word) => {
+        const cleanWord = word.replace(/\s\(\d+\)$/, "");
+        for (const [axis, words] of Object.entries(AROMA_DESCRIPTORS_BY_AXIS)) {
+          if (words.includes(cleanWord)) return axis;
+        }
+        return null;
+      };
+
+      const populateColumn = (containerId, words) => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        container.innerHTML = words.map(word => {
+          const group = findGroup(word);
+          const color = AROMA_COLORS[group] || "#d4a373";
+          return `<span class="aroma-chip" style="background-color: ${color}33; color: ${color}; border: 1px solid ${color};">${word}</span>`;
+        }).join("");
+      };
+
+      populateColumn("initialWordsList", initialWords);
+      populateColumn("middleWordsList", middleWords);
+      populateColumn("finishWordsList", finishWords);
+    }
+
+    /***********************
      * ATTACH LISTENERS
      ***********************/
     function attachSliderListeners() {
@@ -606,7 +713,7 @@
       updateFirebase();
     }
 
-   function updateAromaChart() {
+    function updateAromaChart() {
       if (currentTab === "my") {
         const stages = ["initial", "middle", "finish"];
         const groupCounts = {};
@@ -637,12 +744,15 @@
           const totalSelections = counts.reduce((a, b) => a + b, 0);
           if (totalSelections > 0) {
             const color = AROMA_COLORS[group] || "#d4a373";
+            const maxVal = Math.max(...counts, 1);
+            const normalizedData = counts.map(val => (val / maxVal) * 3);
+
             datasets.push({
               label: group,
-              data: counts,
+              data: normalizedData,
               borderColor: color,
               backgroundColor: color + "33",
-              borderWidth: Math.min(2 + totalSelections * 2, 10),
+              borderWidth: Math.min(2 + totalSelections * 0.5, 12),
               tension: 0.3,
               fill: false
             });
@@ -653,49 +763,23 @@
         const middleWords = Array.from(myRatings.aromaStages.middle);
         const finishWords = Array.from(myRatings.aromaStages.finish);
 
-        const annotations = {};
-
-        // Helper to build individual colored word labels per stage
-        const createWordAnnotations = (words, xVal, baseYVal, xAdjust, align) => {
-          words.forEach((word, idx) => {
-            const group = findGroup(word);
-            const color = AROMA_COLORS[group] || "#ffffff";
-            annotations[`word_${xVal}_${idx}`] = {
-              type: 'label',
-              xValue: xVal,
-              yValue: baseYVal - (idx * 0.6), // Stacks words vertically
-              xAdjust: xAdjust,
-              textAlign: align,
-              content: word,
-              color: color,
-              backgroundColor: 'transparent',
-              borderWidth: 0,
-              font: { size: 12, weight: 'bold' },
-              padding: 0
-            };
-          });
-        };
-
-        createWordAnnotations(initialWords, 0, 9.5, 55, 'left');
-        createWordAnnotations(middleWords, 1, 9.5, 0, 'center');
-        createWordAnnotations(finishWords, 2, 9.5, -55, 'right');
+        renderAromaWordsAbovePlot(initialWords, middleWords, finishWords);
 
         aromaTimelineChart.data.datasets = datasets;
-        aromaTimelineChart.options.plugins.annotation.annotations = annotations;
         aromaTimelineChart.update();
       }
     }
+
     /***********************
      * RESTORE SAVED RATINGS
      ***********************/
     function loadMySavedRatings() {
-      if (!firebaseEnabled || !sessionID || !currentChocolateId) return;
+      if (!firebaseEnabled || !sessionID || !currentChocolateId || !userID) return;
 
       db.ref(`ratings/${sessionID}/${currentChocolateId}/${userID}`).once("value", snapshot => {
         const data = snapshot.val();
         if (!data) return;
 
-        // Basic Tastes
         BASIC_TASTES.forEach(taste => {
           const val = data.basic?.[taste] ?? 0;
           myRatings.basic[taste] = val;
@@ -708,7 +792,6 @@
         });
         basicRadarChart.update();
 
-        // Mouthfeel
         myRatings.mouthfeel = new Set(data.mouthfeel || []);
         document.querySelectorAll('#mouthfeel-buttons button').forEach(btn => {
           const word = btn.dataset.word;
@@ -716,7 +799,6 @@
           else btn.classList.remove("selected");
         });
 
-        // Aromas Stages
         if (data.aromaStages) {
           myRatings.aromaStages.initial = new Set(data.aromaStages.initial || []);
           myRatings.aromaStages.middle = new Set(data.aromaStages.middle || []);
@@ -757,12 +839,49 @@
       attachSliderListeners();
       attachMouthfeelListeners();
 
-      loadMySavedRatings();
-      loadGroupRatings();
+      if (currentTab === "my") {
+        loadMySavedRatings();
+      } else {
+        loadGroupRatings();
+      }
     }
 
     document.querySelectorAll(".choc-btn").forEach(btn => {
       btn.addEventListener("click", () => loadChocolate(btn.dataset.chocId));
+    });
+
+    /***********************
+     * HISTORY DATE SELECTOR
+     ***********************/
+    function populateDateDropdown() {
+      if (!firebaseEnabled) return;
+
+      db.ref("ratings").once("value", snapshot => {
+        const datesObj = snapshot.val();
+        historyDateSelect.innerHTML = "";
+
+        if (!datesObj) {
+          const opt = document.createElement("option");
+          opt.value = currentDate;
+          opt.textContent = currentDate;
+          historyDateSelect.appendChild(opt);
+          return;
+        }
+
+        const dates = Object.keys(datesObj).sort().reverse();
+        dates.forEach(d => {
+          const opt = document.createElement("option");
+          opt.value = d;
+          opt.textContent = d;
+          if (d === selectedHistoryDate) opt.selected = true;
+          historyDateSelect.appendChild(opt);
+        });
+      });
+    }
+
+    historyDateSelect.addEventListener("change", (e) => {
+      selectedHistoryDate = e.target.value;
+      loadGroupRatings();
     });
 
     /***********************
@@ -772,6 +891,7 @@
       currentTab = "my";
       tabMy.classList.add("active");
       tabAll.classList.remove("active");
+      dateSelectorContainer.classList.add("hidden");
 
       document.getElementById("basic-sliders").style.display = "block";
       document.getElementById("mouthfeel-buttons").style.display = "flex";
@@ -785,12 +905,14 @@
       currentTab = "all";
       tabMy.classList.remove("active");
       tabAll.classList.add("active");
+      dateSelectorContainer.classList.remove("hidden");
 
       document.getElementById("basic-sliders").style.display = "none";
       document.getElementById("mouthfeel-buttons").style.display = "none";
       document.getElementById("aroma-prompts-container").style.display = "none";
 
       basicRadarChart.data.datasets[0].label = "Group Average";
+      populateDateDropdown();
       loadGroupRatings();
     });
 
@@ -807,9 +929,11 @@
      * REALTIME GROUP DATA
      ***********************/
     function loadGroupRatings() {
-      if (!firebaseEnabled || !sessionID || !currentChocolateId) return;
+      if (!firebaseEnabled || !currentChocolateId) return;
 
-      db.ref(`ratings/${sessionID}/${currentChocolateId}`).on("value", snapshot => {
+      const targetDate = (currentTab === "all") ? selectedHistoryDate : sessionID;
+
+      db.ref(`ratings/${targetDate}/${currentChocolateId}`).on("value", snapshot => {
         const all = snapshot.val();
         if (!all) return;
 
@@ -869,12 +993,15 @@
             const totalSelections = stageTotals.reduce((a, b) => a + b, 0);
             if (totalSelections > 0) {
               const color = AROMA_COLORS[group] || "#d4a373";
+              const maxVal = Math.max(...stageTotals, 1);
+              const normalizedData = stageTotals.map(val => (val / maxVal) * 3);
+
               datasets.push({
                 label: group,
-                data: stageTotals,
+                data: normalizedData,
                 borderColor: color,
                 backgroundColor: color + "33",
-                borderWidth: Math.min(2 + totalSelections * 1.5, 12),
+                borderWidth: Math.min(2 + totalSelections * 0.5, 12),
                 tension: 0.3,
                 fill: false
               });
@@ -884,7 +1011,6 @@
           const formatGroupWords = (stageObj) => {
             return Object.entries(stageObj)
               .sort((a, b) => b[1] - a[1])
-              .slice(0, 5)
               .map(([word, count]) => `${word} (${count})`);
           };
 
@@ -892,34 +1018,9 @@
           const midTop = formatGroupWords(counts.middle);
           const finTop = formatGroupWords(counts.finish);
 
-          const annotations = {};
-
-          const createWordAnnotations = (words, xVal, baseYVal, xAdjust, align) => {
-            words.forEach((word, idx) => {
-              const group = findGroup(word);
-              const color = AROMA_COLORS[group] || "#ffffff";
-              annotations[`word_${xVal}_${idx}`] = {
-                type: 'label',
-                xValue: xVal,
-                yValue: baseYVal - (idx * 0.6),
-                xAdjust: xAdjust,
-                textAlign: align,
-                content: word,
-                color: color,
-                backgroundColor: 'transparent',
-                borderWidth: 0,
-                font: { size: 12, weight: 'bold' },
-                padding: 0
-              };
-            });
-          };
-
-          createWordAnnotations(initTop, 0, 9.5, 55, 'left');
-          createWordAnnotations(midTop, 1, 9.5, 0, 'center');
-          createWordAnnotations(finTop, 2, 9.5, -55, 'right');
+          renderAromaWordsAbovePlot(initTop, midTop, finTop);
 
           aromaTimelineChart.data.datasets = datasets;
-          aromaTimelineChart.options.plugins.annotation.annotations = annotations;
           aromaTimelineChart.update();
         }
       });
@@ -947,6 +1048,7 @@
         }
       });
     }
+
     /***********************
      * NAVIGATION BUTTONS
      ***********************/
