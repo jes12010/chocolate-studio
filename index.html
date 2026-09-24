@@ -133,12 +133,11 @@
       box-sizing: border-box;
     }
 
-    /* SIDE-BY-SIDE SIDE PANEL LAYOUT FOR AROMA VISUALIZATION */
+    /* STACKED LAYOUT FOR AROMA VISUALIZATION (WORDS ABOVE PLOT) */
     .aroma-split-layout {
       display: flex;
-      flex-direction: row;
+      flex-direction: column;
       gap: 15px;
-      align-items: stretch;
       background: #4a3a36;
       padding: 15px;
       border-radius: 10px;
@@ -147,34 +146,37 @@
     }
 
     .aroma-words-side {
-      flex: 1;
+      width: 100%;
       display: flex;
-      flex-direction: column;
-      gap: 10px;
+      flex-direction: row;
+      gap: 15px;
       background: rgba(0, 0, 0, 0.25);
-      padding: 10px;
+      padding: 12px;
       border-radius: 6px;
-      max-height: 380px;
-      overflow-y: auto;
+      height: auto;
+      max-height: none;
+      overflow: visible;
+      box-sizing: border-box;
     }
 
     .aroma-chart-side {
-      flex: 2;
+      width: 100%;
       position: relative;
       min-height: 350px;
       height: 380px;
     }
 
     .word-column {
+      flex: 1;
       text-align: left;
     }
 
     .word-column h4 {
-      margin: 0 0 4px 0;
+      margin: 0 0 6px 0;
       color: #f7e7d3;
       font-size: 13px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      padding-bottom: 2px;
+      padding-bottom: 4px;
       text-align: left;
     }
 
@@ -266,7 +268,7 @@
     }
 
     @media (max-width: 768px) {
-      .aroma-split-layout {
+      .aroma-words-side {
         flex-direction: column;
       }
       .aroma-chart-side {
@@ -364,7 +366,7 @@
 
     <!-- TIME-SERIES VISUALIZATION -->
     <div id="aroma-plot-section" class="aroma-split-layout">
-      <!-- Side panel for displaying selected words -->
+      <!-- Words display box positioned above the plot -->
       <div id="aromaWordsHeader" class="aroma-words-side">
         <div class="word-column" id="initialWordsCol">
           <h4>Initial</h4>
@@ -380,7 +382,7 @@
         </div>
       </div>
 
-      <!-- Plot Canvas Side -->
+      <!-- Plot Canvas Section below words -->
       <div class="aroma-chart-side">
         <canvas id="aromaTimelineCanvas"></canvas>
       </div>
