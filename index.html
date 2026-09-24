@@ -23,18 +23,19 @@
     }
     h1, h2, h3, h4 {
       text-align: center;
-      margin-top: 20px;
+      margin-top: 15px;
+      margin-bottom: 10px;
     }
     .container {
-      width: 90%;
+      width: 95%;
       margin: auto;
-      max-width: 700px;
+      max-width: 1000px; /* EXPANDED TO GIVE PLOTS & WORDS MORE HORIZONTAL ROOM */
       padding-bottom: 40px;
     }
     .hidden { display: none; }
 
     #mouthfeelCloud {
-      min-height: 100px;
+      min-height: 80px;
       width: 100%;
       display: flex;
       flex-wrap: wrap;
@@ -62,7 +63,7 @@
     }
 
     /* SLIDERS */
-    .slider-group { margin: 20px 0; }
+    .slider-group { margin: 15px 0; }
     .slider-group label { display: block; margin-bottom: 5px; }
 
     /* DESCRIPTOR BUTTONS */
@@ -89,7 +90,7 @@
     .tabs {
       display: flex;
       justify-content: center;
-      margin-top: 20px;
+      margin-top: 15px;
     }
     .tabs button {
       margin: 0 10px;
@@ -128,50 +129,57 @@
       margin-top: 15px;
       display: flex;
       flex-direction: column;
+      width: 100%;
+      box-sizing: border-box;
     }
 
-    /* AROMA WORDS CONTAINER ABOVE PLOT */
+    /* AROMA WORDS CONTAINER ABOVE PLOT (EXPANDED TO DISPLAY ALL AT ONCE) */
     .aroma-words-container {
       display: flex;
       justify-content: space-between;
-      max-height: 160px;
-      overflow-y: auto;
+      width: 100%;
+      min-height: 100px; /* ALLOWS CONTAINER TO GROW FLEXIBLY WITHOUT SCROLLING */
+      overflow: visible; /* ELIMINATES SCROLLBARS FOR SCREENSHOTS */
       margin-bottom: 15px;
-      padding: 8px;
-      background: rgba(0, 0, 0, 0.2);
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.25);
       border-radius: 6px;
+      box-sizing: border-box;
     }
 
     .word-column {
       flex: 1;
       text-align: center;
-      padding: 0 5px;
+      padding: 0 8px;
     }
 
     .word-column h4 {
-      margin: 0 0 5px 0;
+      margin: 0 0 8px 0;
       color: #f7e7d3;
-      font-size: 13px;
+      font-size: 14px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding-bottom: 4px;
     }
 
     .word-list {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 4px;
+      gap: 5px;
     }
 
     .aroma-chip {
       display: inline-block;
-      padding: 2px 6px;
+      padding: 3px 8px;
       border-radius: 4px;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: bold;
+      line-height: 1.2;
     }
 
     .canvas-wrapper {
-      height: 320px;
+      height: 280px;
+      width: 100%;
       position: relative;
     }
 
@@ -284,7 +292,7 @@
       <button id="tab-all">Everyone's Ratings</button>
     </div>
 
-    <!-- DATE SELECTOR FOR PAST DATES (Visible in Everyone's Tab) -->
+    <!-- DATE SELECTOR FOR PAST DATES -->
     <div id="dateSelectorContainer" class="date-selector-container hidden">
       <label for="historyDateSelect">Select Date: </label>
       <select id="historyDateSelect"></select>
@@ -331,7 +339,7 @@
 
     <!-- TIME-SERIES VISUALIZATION -->
     <div id="aroma-plot-section" class="visual-box">
-      <!-- Dedicated scrollable header for word descriptors -->
+      <!-- Dynamic header for displaying all aroma words at once -->
       <div id="aromaWordsHeader" class="aroma-words-container">
         <div class="word-column" id="initialWordsCol">
           <h4>Initial</h4>
