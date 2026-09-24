@@ -409,7 +409,7 @@
 
     let firebaseEnabled = false;
     let db = null;
-    let activeListenerRef = null;
+    let activeDbRef = null;
 
     try {
       firebase.initializeApp(firebaseConfig);
@@ -973,17 +973,15 @@
 
       const targetDate = (currentTab === "all") ? selectedHistoryDate : sessionID;
 
-      // Detach previous active listener if present
-      if (activeListenerRef) {
-        activeListenerRef.off();
+      if (activeDbRef) {
+        activeDbRef.off();
       }
 
-      activeListenerRef = db.ref(`ratings/${targetDate}/${currentChocolateId}`);
-      
-      activeListenerRef.on("value", snapshot => {
+      activeDbRef = db.ref(`ratings/${targetDate}/${currentChocolateId}`);
+
+      activeDbRef.on("value", snapshot => {
         const all = snapshot.val();
-        
-        // NULL SAFEGUARD: If no data exists yet for this date/chocolate
+
         if (!all) {
           basicRadarChart.data.datasets[0].data = BASIC_TASTES.map(() => 0);
           basicRadarChart.update();
@@ -996,92 +994,92 @@
 
         const users = Object.values(all);
 
+        // 1. Calculate Basic Tastes Average
         const avgBasic = BASIC_TASTES.map(taste => {
           const vals = users.map(u => u.basic?.[taste] ?? 0);
-          return vals.reduce((a,b)=>a+b,0) / (vals.length || 1);
+          return vals.reduce((a, b) => a + b, 0) / (vals.length || 1);
         });
 
+        // 2. Calculate Mouthfeel Word Frequency
         const mouthfeelFreq = {};
         users.forEach(u => {
-          (u.mouthfeel || []).forEach(w => mouthfeelFreq[w] = (mouthfeelFreq[w]||0)+1);
+          (u.mouthfeel || []).forEach(w => mouthfeelFreq[w] = (mouthfeelFreq[w] || 0) + 1);
         });
 
-        if (currentTab === "all") {
-          basicRadarChart.data.datasets[0].data = avgBasic;
-          basicRadarChart.update();
+        // 3. Update Visuals
+        basicRadarChart.data.datasets[0].data = avgBasic;
+        basicRadarChart.update();
 
-          const maxM = Math.max(...Object.values(mouthfeelFreq), 1);
-          mouthfeelCloud.innerHTML = Object.entries(mouthfeelFreq)
-            .map(([word, count]) => {
-              const size = 14 + (count / maxM) * 26;
-              return `<span style="font-size:${size}px;margin:4px;">${word} (${count})</span>`;
-            }).join("");
+        const maxM = Math.max(...Object.values(mouthfeelFreq), 1);
+        mouthfeelCloud.innerHTML = Object.entries(mouthfeelFreq)
+          .map(([word, count]) => {
+            const size = 14 + (count / maxM) * 26;
+            return `<span style="font-size:${size}px;margin:4px;">${word} (${count})</span>`;
+          }).join("");
 
-          const findGroup = (word) => {
-            const cleanWord = word.replace(/\s\(\d+\)$/, "");
-            for (const [axis, words] of Object.entries(AROMA_DESCRIPTORS_BY_AXIS)) {
-              if (words.includes(cleanWord)) return axis;
-            }
-            return null;
-          };
+        // 4. Calculate Aroma Stage Frequencies
+        const findGroup = (word) => {
+          const cleanWord = word.replace(/\s\(\d+\)$/, "");
+          for (const [axis, words] of Object.entries(AROMA_DESCRIPTORS_BY_AXIS)) {
+            if (words.includes(cleanWord)) return axis;
+          }
+          return null;
+        };
 
-          const groupCounts = {};
-          Object.keys(AROMA_DESCRIPTORS_BY_AXIS).forEach(group => {
-            groupCounts[group] = [0, 0, 0];
-          });
+        const groupCounts = {};
+        Object.keys(AROMA_DESCRIPTORS_BY_AXIS).forEach(group => {
+          groupCounts[group] = [0, 0, 0];
+        });
 
-          const counts = { initial: {}, middle: {}, finish: {} };
+        const counts = { initial: {}, middle: {}, finish: {} };
 
-          users.forEach(u => {
-            ["initial", "middle", "finish"].forEach((stage, stageIdx) => {
-              const words = u.aromaStages?.[stage] || [];
-              words.forEach(w => {
-                counts[stage][w] = (counts[stage][w] || 0) + 1;
-                const grp = findGroup(w);
-                if (grp) {
-                  groupCounts[grp][stageIdx] += 1;
-                }
-              });
+        users.forEach(u => {
+          ["initial", "middle", "finish"].forEach((stage, stageIdx) => {
+            const words = u.aromaStages?.[stage] || [];
+            words.forEach(w => {
+              counts[stage][w] = (counts[stage][w] || 0) + 1;
+              const grp = findGroup(w);
+              if (grp) {
+                groupCounts[grp][stageIdx] += 1;
+              }
             });
           });
+        });
 
-          const datasets = [];
-          Object.entries(groupCounts).forEach(([group, stageTotals]) => {
-            const totalSelections = stageTotals.reduce((a, b) => a + b, 0);
-            if (totalSelections > 0) {
-              const color = AROMA_COLORS[group] || "#d4a373";
-              const maxVal = Math.max(...stageTotals, 1);
-              const normalizedData = stageTotals.map(val => (val / maxVal) * 3);
+        const datasets = [];
+        Object.entries(groupCounts).forEach(([group, stageTotals]) => {
+          const totalSelections = stageTotals.reduce((a, b) => a + b, 0);
+          if (totalSelections > 0) {
+            const color = AROMA_COLORS[group] || "#d4a373";
+            const maxVal = Math.max(...stageTotals, 1);
+            const normalizedData = stageTotals.map(val => (val / maxVal) * 3);
 
-              datasets.push({
-                label: group,
-                data: normalizedData,
-                borderColor: color,
-                backgroundColor: color + "33",
-                borderWidth: Math.min(2 + totalSelections * 0.5, 12),
-                tension: 0.3,
-                fill: false
-              });
-            }
-          });
+            datasets.push({
+              label: group,
+              data: normalizedData,
+              borderColor: color,
+              backgroundColor: color + "33",
+              borderWidth: Math.min(2 + totalSelections * 0.5, 12),
+              tension: 0.3,
+              fill: false
+            });
+          }
+        });
 
-          const formatGroupWords = (stageObj) => {
-            return Object.entries(stageObj)
-              .sort((a, b) => b[1] - a[1])
-              .map(([word, count]) => `${word} (${count})`);
-          };
+        const formatGroupWords = (stageObj) => {
+          return Object.entries(stageObj)
+            .sort((a, b) => b[1] - a[1])
+            .map(([word, count]) => `${word} (${count})`);
+        };
 
-          const initTop = formatGroupWords(counts.initial);
-          const midTop = formatGroupWords(counts.middle);
-          const finTop = formatGroupWords(counts.finish);
+        const initTop = formatGroupWords(counts.initial);
+        const midTop = formatGroupWords(counts.middle);
+        const finTop = formatGroupWords(counts.finish);
 
-          renderAromaWordsAbovePlot(initTop, midTop, finTop);
+        renderAromaWordsAbovePlot(initTop, midTop, finTop);
 
-          aromaTimelineChart.data.datasets = datasets;
-          aromaTimelineChart.update();
-        }
-      }, err => {
-        console.warn("Firebase realtime listen error:", err);
+        aromaTimelineChart.data.datasets = datasets;
+        aromaTimelineChart.update();
       });
     }
 
